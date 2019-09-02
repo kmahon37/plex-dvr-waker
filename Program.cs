@@ -15,6 +15,8 @@ namespace PlexDvrWaker
             AccessDeniedDuringTaskCreation = 2
         }
 
+        internal const string APPLICATION_ALIAS = "dotnet PlexDvrWaker.dll";
+
         public static int Main(string[] args)
         {
             // If no args, show help by default
@@ -34,7 +36,7 @@ namespace PlexDvrWaker
 
         private static int RunAddTask(AddTaskOptions options)
         {
-            Logger.Verbose = options.Verbose;
+            SetupLogger(options);
 
             Plex.TaskScheduler.PlexDataPath = options.PlexDataPathIsDefault ? null : options.PlexDataPath;
 
@@ -78,7 +80,7 @@ namespace PlexDvrWaker
 
         private static int RunList(ListOptions options)
         {
-            Logger.Verbose = options.Verbose;
+            SetupLogger(options);
 
             var da = GetPlexDataAdapter(options.PlexDataPath);
             da.PrintScheduledRecordings();
@@ -88,7 +90,7 @@ namespace PlexDvrWaker
 
         private static int RunMonitor(MonitorOptions options)
         {
-            Logger.Verbose = options.Verbose;
+            SetupLogger(options);
 
             var da = GetPlexDataAdapter(options.PlexDataPath);
             using (var pm = new Plex.LibraryMonitor(da, TimeSpan.FromSeconds(options.DebounceSeconds.Value)))
@@ -101,6 +103,12 @@ namespace PlexDvrWaker
             }
 
             return (int)ExitCode.Success;
+        }
+
+        private static void SetupLogger<T>(T options) where T : ProgramOptions
+        {
+            Logger.Verbose = options.Verbose;
+            Logger.LogToFile(APPLICATION_ALIAS + " " + Parser.Default.FormatCommandLine(options, s => s.UseEqualToken = true));
         }
 
         private static Plex.DataAdapter GetPlexDataAdapter(string plexDataPath)

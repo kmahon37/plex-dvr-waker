@@ -7,7 +7,7 @@ namespace PlexDvrWaker.CmdLine
     [Verb("list", HelpText = "Prints upcoming scheduled recordings to standard output.")]
     internal class ListOptions : ProgramOptions
     {
-        [Usage(ApplicationAlias = "dotnet PlexDvrWaker.dll")]
+        [Usage(ApplicationAlias = Program.APPLICATION_ALIAS)]
         public static IEnumerable<Example> Examples
         {
             get

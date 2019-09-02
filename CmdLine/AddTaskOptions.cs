@@ -64,7 +64,7 @@ namespace PlexDvrWaker.CmdLine
         }
 
 
-        [Usage(ApplicationAlias = "dotnet PlexDvrWaker.dll")]
+        [Usage(ApplicationAlias = Program.APPLICATION_ALIAS)]
         public static IEnumerable<Example> Examples
         {
             get
