@@ -1,4 +1,6 @@
+using CommandLine;
 using Microsoft.Win32.TaskScheduler;
+using PlexDvrWaker.CmdLine;
 using PlexDvrWaker.Common;
 using System;
 using System.IO;
@@ -8,12 +10,20 @@ namespace PlexDvrWaker.Plex
     internal static class TaskScheduler
     {
         private const string TASK_SCHEDULER_FOLDER = "Plex DVR Waker";
+        private const string TASK_NAME_DVR_WAKE = TASK_SCHEDULER_FOLDER + "\\DVR wake";
+        private const string TASK_NAME_DVR_SYNC = TASK_SCHEDULER_FOLDER + "\\DVR sync";
+        private const string TASK_NAME_DVR_MONITOR = TASK_SCHEDULER_FOLDER + "\\DVR monitor";
+
+        public static string PlexDataPath { get; set; }
 
         public static void CreateOrUpdateWakeUpTask(DateTime startTime)
         {
-            var taskName = $@"{TASK_SCHEDULER_FOLDER}\DVR wake";
+            CreateOrUpdateWakeUpTask(startTime, true);
+        }
 
-            Logger.LogInformation($"Creating/updating wakeup task: {taskName}");
+        public static void CreateOrUpdateWakeUpTask(DateTime startTime, bool showMessageToUser)
+        {
+            Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
             var td = TaskService.Instance.NewTask();
             td.RegistrationInfo.Description = "This task will wake the computer for the next Plex DVR recording.";
@@ -39,16 +49,23 @@ namespace PlexDvrWaker.Plex
                 Path = "rundll32.exe"
             });
 
-            TaskService.Instance.RootFolder.RegisterTaskDefinition(taskName, td);
+            TaskService.Instance.RootFolder.RegisterTaskDefinition(TASK_NAME_DVR_WAKE, td);
 
-            Logger.LogInformation($"Wakeup task scheduled for {trigger.StartBoundary}");
+            Logger.LogInformation($"Wakeup task scheduled for {trigger.StartBoundary}", showMessageToUser);
         }
 
-        public static void CreateOrUpdateDVRSyncTask(uint intervalMinutes)
+        public static void DeleteWakeUpTask()
         {
-            var taskName = $@"{TASK_SCHEDULER_FOLDER}\DVR sync";
+            Logger.LogInformation($"Deleting wakeup task (if exists): {TASK_NAME_DVR_WAKE}");
 
-            Logger.LogInformation($"Creating/updating DVR sync task: {taskName}");
+            TaskService.Instance.RootFolder.DeleteTask(TASK_NAME_DVR_WAKE, false);
+
+            Logger.LogInformation("Wakeup task deleted");
+        }
+
+        public static bool CreateOrUpdateDVRSyncTask(int intervalMinutes)
+        {
+            Logger.LogInformation($"Creating/updating DVR sync task: {TASK_NAME_DVR_SYNC}");
 
             var td = TaskService.Instance.NewTask();
             td.RegistrationInfo.Description = "This task will sync with the Plex database and ensure the 'DVR wake' task is updated appropriately.";
@@ -73,18 +90,93 @@ namespace PlexDvrWaker.Plex
             {
                 Path = "dotnet.exe",
                 WorkingDirectory = workingDirectory,
-                Arguments = $"{dllName} --wakeup"
+                Arguments = dllName + " " + Parser.Default.FormatCommandLine(new AddTaskOptions
+                {
+                    Wakeup = true,
+                    PlexDataPath = PlexDataPath
+                },
+                settings =>
+                {
+                    settings.UseEqualToken = true;
+                })
             });
 
             try
             {
-                TaskService.Instance.RootFolder.RegisterTaskDefinition(taskName, td);
-                Logger.LogInformation($"DVR sync task scheduled for every {intervalMinutes} minute{(intervalMinutes > 1 ? "s" : "")}");
+                TaskService.Instance.RootFolder.RegisterTaskDefinition(TASK_NAME_DVR_SYNC, td);
+                Logger.LogInformation($"DVR sync task scheduled for every {intervalMinutes} minute{(intervalMinutes > 1 ? "s" : "")}", true);
             }
             catch (UnauthorizedAccessException)
             {
-                Logger.LogError($"Access is denied.  Try running as an Administrator.  Administrator rights are needed in order to create the DVR sync task so that it runs hidden without flashing a console window every time the task is triggered.");
+                LogAccessDenied(TASK_NAME_DVR_SYNC);
+                return false;
             }
+
+            return true;
+        }
+
+        public static bool CreateOrUpdateDVRMonitorTask(int debounceSeconds)
+        {
+            Logger.LogInformation($"Creating/updating DVR monitor task: {TASK_NAME_DVR_MONITOR}");
+
+            var td = TaskService.Instance.NewTask();
+            td.RegistrationInfo.Description = "This task will monitor the Plex database and ensure the 'DVR wake' task is updated appropriately.";
+            td.Principal.LogonType = TaskLogonType.S4U;
+            td.Principal.RunLevel = TaskRunLevel.Highest;
+            td.Settings.Hidden = true;
+            td.Settings.AllowDemandStart = true;
+            td.Settings.DisallowStartIfOnBatteries = false;
+            td.Settings.StopIfGoingOnBatteries = false;
+            td.Settings.WakeToRun = false;
+            td.Settings.ExecutionTimeLimit = TimeSpan.Zero;
+
+            td.Triggers.Add(new BootTrigger
+            {
+                // Delay after logon to give Plex time to startup and update things
+                Delay = TimeSpan.FromMinutes(5)
+            });
+
+            var fullPath = typeof(TaskScheduler).Assembly.Location;
+            var workingDirectory = Path.GetDirectoryName(fullPath);
+            var dllName = Path.GetFileName(fullPath);
+            td.Actions.Add(new ExecAction()
+            {
+                Path = "dotnet.exe",
+                WorkingDirectory = workingDirectory,
+                Arguments = dllName + " " + Parser.Default.FormatCommandLine(
+                    new MonitorOptions
+                    {
+                        DebounceSeconds = debounceSeconds,
+                        PlexDataPath = PlexDataPath
+                    },
+                    settings =>
+                    {
+                        settings.UseEqualToken = true;
+                    }
+                )
+            });
+
+            try
+            {
+                TaskService.Instance.RootFolder.RegisterTaskDefinition(TASK_NAME_DVR_MONITOR, td);
+                Logger.LogInformation($"DVR monitor task scheduled to run at log on", true);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                LogAccessDenied(TASK_NAME_DVR_MONITOR);
+                return false;
+            }
+
+            Logger.LogInformation($"Starting DVR monitor task");
+            TaskService.Instance.GetTask(TASK_NAME_DVR_MONITOR).Run();
+            Logger.LogInformation($"DVR monitor task has been started", true);
+
+            return true;
+        }
+
+        private static void LogAccessDenied(string taskName)
+        {
+            Logger.LogError($"Access is denied.  Try running as an Administrator.  Administrator rights are needed in order to create the '{taskName}' task so that it runs hidden without flashing a console window every time the task is triggered.");
         }
 
     }

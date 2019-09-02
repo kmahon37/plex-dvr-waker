@@ -39,11 +39,6 @@ namespace PlexDvrWaker.Plex
             }
         }
 
-        public void WaitIndefinitely()
-        {
-            Task.Delay(-1).Wait();
-        }
-
         private void OnLibraryDatabaseChanged(object source, FileSystemEventArgs e)
         {
             Logger.LogInformation($"Plex library changed: {e.Name}");
@@ -83,7 +78,6 @@ namespace PlexDvrWaker.Plex
 
         private void OnLibraryDatabaseError(object source, ErrorEventArgs e)
         {
-            //TODO handle better
             Logger.LogError(e.GetException().ToString());
         }
 
@@ -94,7 +88,7 @@ namespace PlexDvrWaker.Plex
             var wakeupTime = _plexAdapter.GetNextScheduledRecordingTime();
             if (wakeupTime.HasValue)
             {
-                TaskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value);
+                TaskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value, false);
             }
         }
 

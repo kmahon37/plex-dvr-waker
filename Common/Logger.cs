@@ -10,11 +10,21 @@ namespace PlexDvrWaker.Common
 
         public static void LogInformation(string message)
         {
+            LogInformation(message, false);
+        }
+
+        public static void LogInformation(string message, bool showMessageToUser)
+        {
             if (Verbose)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.WriteLine($"{DateTime.Now}\t{message}");
                 Console.ForegroundColor = _defaultForegroundColor;
+            }
+
+            if (showMessageToUser)
+            {
+                Console.WriteLine(message);
             }
         }
 
