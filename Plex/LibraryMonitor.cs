@@ -21,7 +21,8 @@ namespace PlexDvrWaker.Plex
             _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(_plexAdapter.LibraryDatabaseFileName), Path.GetFileName(_plexAdapter.LibraryDatabaseFileName) + "*")
             {
                 NotifyFilter = NotifyFilters.LastWrite,
-                IncludeSubdirectories = false
+                IncludeSubdirectories = false,
+                InternalBufferSize = 4096 * 4
             };
             _libraryDatabaseFileWatcher.Changed += OnLibraryDatabaseChanged;
             _libraryDatabaseFileWatcher.Error += OnLibraryDatabaseError;
