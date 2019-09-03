@@ -1,11 +1,15 @@
 using System;
 using System.IO;
+using System.Linq;
 
 namespace PlexDvrWaker.Common
 {
     internal static class Logger
     {
-        private static readonly ConsoleColor _defaultForegroundColor = ConsoleColor.Gray;
+        private static readonly ConsoleColor DEFAULT_FOREGROUND_COLOR = ConsoleColor.Gray;
+        private const int MAX_ROLLED_LOG_COUNT = 3;
+        private const int MAX_LOG_SIZE = 5 * 1024 * 1024;  //5MB
+        private static readonly object LOG_FILE_LOCK = new Object();
 
         private static string _logFileName;
         private static string LogFileName
@@ -23,6 +27,7 @@ namespace PlexDvrWaker.Common
             }
         }
 
+        public static bool InteractiveMonitor { get; set; }
         public static bool Verbose { get; set; }
 
         public static void LogInformation(string message)
@@ -35,18 +40,20 @@ namespace PlexDvrWaker.Common
             var logMsg = $"{DateTime.Now.ToString("s")}\t{message}";
 
             LogToFile(logMsg);
-
-            if (Verbose)
+            LogToConsole(logMsg, (msg) =>
             {
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine(logMsg);
-                Console.ForegroundColor = _defaultForegroundColor;
-            }
+                if (Verbose)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine(msg);
+                    Console.ForegroundColor = DEFAULT_FOREGROUND_COLOR;
+                }
 
-            if (showMessageToUser)
-            {
-                Console.WriteLine(message);
-            }
+                if (showMessageToUser)
+                {
+                    Console.WriteLine(message);
+                }
+            });
         }
 
         public static void LogError(string message)
@@ -54,15 +61,93 @@ namespace PlexDvrWaker.Common
             var logMsg = $"ERROR: {message}";
 
             LogToFile(logMsg);
+            LogToConsole(logMsg, (msg) =>
+            {
+                LogErrorToConsole(msg);
+            });
+        }
 
+        private static void LogErrorToConsole(string message)
+        {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine(logMsg);
-            Console.ForegroundColor = _defaultForegroundColor;
+            Console.Error.WriteLine(message);
+            Console.ForegroundColor = DEFAULT_FOREGROUND_COLOR;
+        }
+
+        private static void LogToConsole(string message, Action<string> logAction)
+        {
+            if (InteractiveMonitor)
+            {
+                // Keeps the "Press any key..." message at the bottom of the console
+                Console.CursorTop -= 1;
+            }
+
+            logAction(message);
+
+            if (InteractiveMonitor)
+            {
+                Console.WriteLine(Plex.LibraryMonitor.PRESS_ANY_KEY_TO_STOP);
+            }
         }
 
         public static void LogToFile(string message)
         {
-            File.AppendAllLines(LogFileName, new[] { message });
+            lock (LOG_FILE_LOCK)
+            {
+                RollLogFileIfNeeded();
+                File.AppendAllLines(LogFileName, new[] { message });
+            }
+        }
+
+        private static void RollLogFileIfNeeded()
+        {
+            if (File.Exists(LogFileName))
+            {
+                // Rolling log file logic taken from:  https://stackoverflow.com/a/33264202
+                try
+                {
+                    var length = new FileInfo(LogFileName).Length;
+
+                    if (length > MAX_LOG_SIZE)
+                    {
+                        var path = Path.GetDirectoryName(LogFileName);
+                        var fileNameNoExt = Path.GetFileNameWithoutExtension(LogFileName);
+                        var wildLogName = fileNameNoExt + "*" + Path.GetExtension(LogFileName);
+                        var logFileList = Directory.GetFiles(path, wildLogName, SearchOption.TopDirectoryOnly);
+
+                        if (logFileList.Length > 0)
+                        {
+                            // Only take files like logfilename.log and logfilename.0.log, so there also can be a maximum of 10 additional rolled files (0..9)
+                            var rolledLogFileList = logFileList.Where(fileName => fileName.Length == (LogFileName.Length + 2)).ToArray();
+                            Array.Sort(rolledLogFileList, 0, rolledLogFileList.Length);
+                            if (rolledLogFileList.Length >= MAX_ROLLED_LOG_COUNT)
+                            {
+                                // Delete the last/oldest log file
+                                File.Delete(rolledLogFileList[MAX_ROLLED_LOG_COUNT - 1]);
+                                var list = rolledLogFileList.ToList();
+                                list.RemoveAt(MAX_ROLLED_LOG_COUNT - 1);
+                                rolledLogFileList = list.ToArray();
+                            }
+
+                            // Rename the remaining rolled files
+                            var bareLogFilePath = Path.Combine(path, fileNameNoExt);
+                            for (int i = rolledLogFileList.Length; i > 0; --i)
+                            {
+                                File.Move(rolledLogFileList[i - 1], bareLogFilePath + "." + i + Path.GetExtension(LogFileName));
+                            }
+
+                            // Rename the original file to a rolled file
+                            var targetPath = bareLogFilePath + ".0" + Path.GetExtension(LogFileName);
+                            File.Move(LogFileName, targetPath);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error directly to console to prevent possible infinite error loop
+                    LogErrorToConsole(ex.ToString());
+                }
+            }
         }
     }
 }

@@ -7,6 +7,8 @@ namespace PlexDvrWaker.Plex
 {
     internal class LibraryMonitor: IDisposable
     {
+        public const string PRESS_ANY_KEY_TO_STOP = "Press any key to stop monitoring";
+
         private readonly DataAdapter _plexAdapter;
         private readonly TimeSpan _bundledChangesTimeSpan;
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;

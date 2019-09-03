@@ -98,7 +98,7 @@ namespace PlexDvrWaker
                 pm.Enabled = true;
 
                 Console.WriteLine("Started monitoring the Plex library database");
-                Console.WriteLine("Press any key to stop monitoring");
+                Console.WriteLine(Plex.LibraryMonitor.PRESS_ANY_KEY_TO_STOP);
                 Console.ReadKey(true);
             }
 
@@ -108,6 +108,7 @@ namespace PlexDvrWaker
         private static void SetupLogger<T>(T options) where T : ProgramOptions
         {
             Logger.Verbose = options.Verbose;
+            Logger.InteractiveMonitor = (typeof(T) == typeof(MonitorOptions));
             Logger.LogToFile(APPLICATION_ALIAS + " " + Parser.Default.FormatCommandLine(options, s => s.UseEqualToken = true));
         }
 
