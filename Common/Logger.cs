@@ -32,7 +32,7 @@ namespace PlexDvrWaker.Common
 
         public static void LogInformation(string message, bool showMessageToUser)
         {
-            var logMsg = $"{DateTime.Now}\t{message}";
+            var logMsg = $"{DateTime.Now.ToString("s")}\t{message}";
 
             LogToFile(logMsg);
 
