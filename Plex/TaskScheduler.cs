@@ -129,6 +129,8 @@ namespace PlexDvrWaker.Plex
             td.Settings.StopIfGoingOnBatteries = false;
             td.Settings.WakeToRun = false;
             td.Settings.ExecutionTimeLimit = TimeSpan.Zero;
+            td.Settings.RestartInterval = TimeSpan.FromMinutes(1);
+            td.Settings.RestartCount = 3;
 
             td.Triggers.Add(new BootTrigger
             {
