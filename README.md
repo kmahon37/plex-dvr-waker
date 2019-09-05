@@ -6,17 +6,6 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 *Disclaimer:*
 _I reverse engineered the Plex library and EPG databases in order to piece together enough functionality to be able to recognize scheduled recordings and previously recorded TV shows and movies (so that it doesn't wake the computer for no reason).  I just used whatever data that I could find and interpret in the databases to identify TV shows and movies.  So, while this tools works fairly well, it clearly does not support all the advanced features built-in to Plex._
 
-## Requirements
-- Windows 7/8/10
-- Windows Task Scheduler
-- Windows .NET Core 2.2+ Runtime ([download from Microsoft](https://dotnet.microsoft.com/download))
-- "Run as administrator" rights
-  - Administrator rights are needed in order to create the sync and monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation.
-
-## Installation
-TODO
-
-
 ## Supported Features
 - Syncs with and/or monitors the Plex library database and schedules a wakeup task
 - Wakes up the computer 15 seconds before the next scheduled recording
@@ -26,6 +15,16 @@ TODO
 - Support for custom Plex application data path
 
 _NOTE: It does *not* support any other Plex "advanced record options" (ie: Prefer HD, Replace lower resolution items, etc)._
+
+## Requirements
+- Windows 7/8/10
+- Windows Task Scheduler
+- Windows .NET Core 2.2+ Runtime ([download from Microsoft](https://dotnet.microsoft.com/download))
+- "Run as administrator" rights
+  - Administrator rights are needed in order to create the sync and monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation.
+
+## Installation
+TODO
 
 ## Quick Start
 If you want a quick, hassle-free way to get started, simply run the following `sync` command.  It will synchronize with the Plex library database every 15 minutes and create/update a Windows Task Scheduler task to wakeup the computer before your next scheduled recording.
