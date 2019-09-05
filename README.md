@@ -3,8 +3,8 @@ Are you fed up with Plex's lack of functionality to wakeup your computer to reco
 
 Plex DVR Waker is a simple command-line tool for waking the computer before the next scheduled recording.  It works by creating a Windows Task Scheduler task that can sync with and/or monitor the Plex library database and then schedule another task to wakeup the computer before the next scheduled recording.
 
-*Disclaimer:*
-_I reverse engineered the Plex library and EPG databases in order to piece together enough functionality to be able to recognize scheduled recordings and previously recorded TV shows and movies (so that it doesn't wake the computer for no reason).  I just used whatever data that I could find and interpret in the databases to identify TV shows and movies.  So, while this tools works fairly well, it clearly does not support all the advanced features built-in to Plex._
+> *DISCLAIMER:*
+> _I reverse engineered the Plex library and EPG databases in order to piece together enough functionality to be able to recognize scheduled recordings and previously recorded TV shows and movies (so that it doesn't wake the computer for no reason).  I just used whatever data that I could find and interpret in the databases to identify TV shows and movies.  So, while this tools works fairly well, it clearly does not support all the advanced features built-in to Plex._
 
 ## Supported Features
 - Syncs with and/or monitors the Plex library database and schedules a wakeup task
@@ -14,7 +14,7 @@ _I reverse engineered the Plex library and EPG databases in order to piece toget
 - Prints out upcoming scheduled recordings
 - Support for custom Plex application data path
 
-_NOTE: It does *not* support any other Plex "advanced record options" (ie: Prefer HD, Replace lower resolution items, etc)._
+> _NOTE: It does *not* support any other Plex "advanced record options" (ie: Prefer HD, Replace lower resolution items, etc)._
 
 ## Requirements
 - Windows 7/8/10
