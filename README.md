@@ -27,7 +27,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 TODO
 
 ## Quick Start
-If you want a quick, hassle-free way to get started, simply run the following `sync` command.  It will synchronize with the Plex library database every 15 minutes and create/update a Windows Task Scheduler task to wakeup the computer before your next scheduled recording.
+If you want a quick, hassle-free way to get started, simply run the following `sync` command from an "Administrator" Command Prompt.  It will synchronize with the Plex library database every 15 minutes and create/update a Windows Task Scheduler task to wakeup the computer before your next scheduled recording.
 ```
 dotnet PlexDvrWaker.dll add-task --sync
 ```

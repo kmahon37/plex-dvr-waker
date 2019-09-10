@@ -12,7 +12,7 @@ namespace PlexDvrWaker.Plex
         private readonly DataAdapter _plexAdapter;
         private readonly TimeSpan _bundledChangesTimeSpan;
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;
-        private bool _libraryChanged = false;
+        private readonly Object _libraryChangedLock = new Object();
         private DateTime? _libraryChangedDate;
 
         public LibraryMonitor(DataAdapter plexAdapter, TimeSpan bundledChangesTimeSpan)
@@ -24,7 +24,7 @@ namespace PlexDvrWaker.Plex
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 IncludeSubdirectories = false,
-                InternalBufferSize = 4096 * 4
+                InternalBufferSize = 4096 * 8
             };
             _libraryDatabaseFileWatcher.Changed += OnLibraryDatabaseChanged;
             _libraryDatabaseFileWatcher.Error += OnLibraryDatabaseError;
@@ -46,42 +46,62 @@ namespace PlexDvrWaker.Plex
         {
             Logger.LogInformation($"Plex library changed: {e.Name}");
 
-            //Bundle changes so we're not running this a ton
-            if (!_libraryChanged)
+            //Snapshot the changed date to use for logging if _libraryChangedDate is not null
+            var changedDateSnapshot = _libraryChangedDate;
+
+            //Double lock to prevent overlapping issues
+            if (_libraryChangedDate == null)
             {
-                if (_bundledChangesTimeSpan.TotalSeconds > 0)
+                lock (_libraryChangedLock)
                 {
-                    Logger.LogInformation($"Bundling changes, waiting {_bundledChangesTimeSpan.TotalSeconds} second{(_bundledChangesTimeSpan.TotalSeconds > 1 ? "s" : "")} until next refresh");
+                    if (_libraryChangedDate == null)
+                    {
+                        //Bundle changes so we're not running this a ton
+                        _libraryChangedDate = DateTime.Now;
+
+                        if (_bundledChangesTimeSpan.TotalSeconds > 0)
+                        {
+                            Logger.LogInformation($"Bundling changes, waiting {_bundledChangesTimeSpan.TotalSeconds} second{(_bundledChangesTimeSpan.TotalSeconds > 1 ? "s" : "")} until next refresh");
+                        }
+
+                        //Asynchronously refresh the next wakeup time
+                        Task.Run(() =>
+                        {
+                            //Sleep this async thread for the timespan to bundle multiple library changes
+                            Task.Delay(_bundledChangesTimeSpan).Wait();
+                            RefreshNextWakeupTime();
+                            _libraryChangedDate = null;
+                        });
+                    }
+                    else
+                    {
+                        //Use the real changed date here since we are still within the lock and it is guaranteed to not be null
+                        LogBundlingChanges(_libraryChangedDate.Value);
+                    }
                 }
-
-                _libraryChanged = true;
-                _libraryChangedDate = DateTime.Now;
-
-                //Asynchronously refresh the next wakeup time
-                Task.Run(() =>
-                {
-                    //Sleep this async thread for a few seconds to bundle multiple library changes
-                    Task.Delay(_bundledChangesTimeSpan).Wait();
-
-                    RefreshNextWakeupTime();
-
-                    _libraryChanged = false;
-                    _libraryChangedDate = null;
-                });
             }
             else
             {
-                if (_bundledChangesTimeSpan.TotalSeconds > 0)
-                {
-                    var secondsRemaining = _bundledChangesTimeSpan.TotalSeconds - (DateTime.Now - _libraryChangedDate.Value).TotalSeconds;
-                    Logger.LogInformation($"Bundling changes, waiting {Math.Round(secondsRemaining, 2)} seconds until next refresh");
-                }
+                //Use the snapshot date here since it is guaranteed to not be null
+                LogBundlingChanges(changedDateSnapshot.Value);
+            }
+        }
+
+        private void LogBundlingChanges(DateTime changedDateSnapshot)
+        {
+            if (_bundledChangesTimeSpan.TotalSeconds > 0)
+            {
+                var secondsRemaining = _bundledChangesTimeSpan.TotalSeconds - (DateTime.Now - changedDateSnapshot).TotalSeconds;
+                Logger.LogInformation($"Bundling changes, waiting {Math.Round(secondsRemaining, 2)} seconds until next refresh");
             }
         }
 
         private void OnLibraryDatabaseError(object source, ErrorEventArgs e)
         {
-            Logger.LogError(e.GetException().ToString());
+            if (!(e.GetException() is InternalBufferOverflowException))
+            {
+                Logger.LogError(e.GetException().ToString());
+            }
         }
 
         private void RefreshNextWakeupTime()
