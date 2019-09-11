@@ -44,11 +44,6 @@ namespace PlexDvrWaker.Plex
 
         private void OnLibraryDatabaseChanged(object source, FileSystemEventArgs e)
         {
-            Logger.LogInformation($"Plex library changed: {e.Name}");
-
-            //Snapshot the changed date to use for logging if _libraryChangedDate is not null
-            var changedDateSnapshot = _libraryChangedDate;
-
             //Double lock to prevent overlapping issues
             if (_libraryChangedDate == null)
             {
@@ -59,12 +54,15 @@ namespace PlexDvrWaker.Plex
                         //Bundle changes so we're not running this a ton
                         _libraryChangedDate = DateTime.Now;
 
+                        Logger.LogInformation($"Plex library changed: {e.Name}");
                         if (_bundledChangesTimeSpan.TotalSeconds > 0)
                         {
                             Logger.LogInformation($"Bundling changes, waiting {_bundledChangesTimeSpan.TotalSeconds} second{(_bundledChangesTimeSpan.TotalSeconds > 1 ? "s" : "")} until next refresh");
                         }
 
-                        //Asynchronously refresh the next wakeup time
+                        //Since we are waiting and bundling changes, we need to asynchronously refresh the next wakeup time
+                        //so we don't block this thread.  We want to keep processing/ignoring other changes until we are
+                        //done with this current refresh.
                         Task.Run(() =>
                         {
                             //Sleep this async thread for the timespan to bundle multiple library changes
@@ -73,26 +71,7 @@ namespace PlexDvrWaker.Plex
                             _libraryChangedDate = null;
                         });
                     }
-                    else
-                    {
-                        //Use the real changed date here since we are still within the lock and it is guaranteed to not be null
-                        LogBundlingChanges(_libraryChangedDate.Value);
-                    }
                 }
-            }
-            else
-            {
-                //Use the snapshot date here since it is guaranteed to not be null
-                LogBundlingChanges(changedDateSnapshot.Value);
-            }
-        }
-
-        private void LogBundlingChanges(DateTime changedDateSnapshot)
-        {
-            if (_bundledChangesTimeSpan.TotalSeconds > 0)
-            {
-                var secondsRemaining = _bundledChangesTimeSpan.TotalSeconds - (DateTime.Now - changedDateSnapshot).TotalSeconds;
-                Logger.LogInformation($"Bundling changes, waiting {Math.Round(secondsRemaining, 2)} seconds until next refresh");
             }
         }
 
