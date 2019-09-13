@@ -146,7 +146,7 @@ Start Time              End Time                Title
 ```
 
 ### Monitor Plex library database (interactive mode) <a name="cmdline-monitor"></a>
-You can also monitor the Plex library database in a foreground/interactive console window.  When run with the `verbose` option, this allows you to see how frequently your Plex library database is changing.  Based on the frequency, you may want to adjust the `debouce` setting accordingly.
+You can also monitor the Plex library database for changes and automatically refresh the next wakeup time.  This is what is run hidden in the background when you run the `add-task --monitor` command.  If you want to, you can also run it in a foreground/interactive console window.  When run with the `verbose` option, this allows you to see how frequently your Plex library database is changing.  Based on the frequency, you may want to adjust the `debouce` setting accordingly.
 
 *Usage:*
 ```
@@ -172,7 +172,7 @@ Press any key to stop monitoring
 ```
 
 ## Troubleshooting
-If you are having issues, you can check the Plex DVR Waker log files located in the same directory.  There are up to 4 rolling log files that can reach 1MB each.  Look for files named like:
+If you are having issues, you can check the Plex DVR Waker log files located in the same directory.  There are up to 4 rolling log files that can reach 1MB each.  If needed, these files can safely be deleted, but they will regenerate over time.
 ```
 PlexDvrWaker.log
 PlexDvrWaker.0.log
