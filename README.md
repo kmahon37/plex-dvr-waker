@@ -172,6 +172,11 @@ Press any key to stop monitoring
 ```
 
 ## Troubleshooting
+
+### Windows Task Scheduler
+Plex DVR Waker works simply by using scheduled tasks in the Windows built-in Task Scheduler program.  To see the scheduled tasks, open the Task Scheduler and go to the "Plex DVR Waker" folder.  You should see up to 3 tasks named: DVR monitor, DVR sync, DVR wakeup.  You may edit/delete these tasks, but your changes may be lost if you run any of the `add-task` commands as they will overwrite/recreate these tasks.
+
+### Log files
 If you are having issues, you can check the Plex DVR Waker log files located in the same directory.  There are up to 4 rolling log files that can reach 1MB each.  If needed, these files can safely be deleted, but they will regenerate over time.
 ```
 PlexDvrWaker.log
