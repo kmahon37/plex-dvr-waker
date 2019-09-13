@@ -29,6 +29,7 @@ namespace PlexDvrWaker.Common
 
         public static bool InteractiveMonitor { get; set; }
         public static bool Verbose { get; set; }
+        public static int ProcessId { get; set; }
 
         public static void LogInformation(string message)
         {
@@ -37,10 +38,10 @@ namespace PlexDvrWaker.Common
 
         public static void LogInformation(string message, bool showMessageToUser)
         {
-            var logMsg = $"{DateTime.Now.ToString("s")}\t{message}";
+            var prefix = DateTime.Now.ToString("s");
 
-            LogToFile(logMsg);
-            LogToConsole(logMsg, (msg) =>
+            LogToFile($"{prefix}\t{ProcessId.ToString().PadLeft(10)}\t{message}");
+            LogToConsole($"{prefix}\t{message}", (msg) =>
             {
                 if (Verbose)
                 {
@@ -58,10 +59,10 @@ namespace PlexDvrWaker.Common
 
         public static void LogError(string message)
         {
-            var logMsg = $"ERROR: {message}";
+            var prefix = DateTime.Now.ToString("s");
 
-            LogToFile(logMsg);
-            LogToConsole(logMsg, (msg) =>
+            LogToFile($"{prefix}\t{ProcessId.ToString().PadLeft(10)}\tERROR: {message}");
+            LogToConsole($"ERROR: {message}", (msg) =>
             {
                 LogErrorToConsole(msg);
             });

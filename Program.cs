@@ -107,9 +107,10 @@ namespace PlexDvrWaker
 
         private static void SetupLogger<T>(T options) where T : ProgramOptions
         {
+            Logger.ProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
             Logger.Verbose = options.Verbose;
             Logger.InteractiveMonitor = (typeof(T) == typeof(MonitorOptions));
-            Logger.LogToFile(APPLICATION_ALIAS + " " + Parser.Default.FormatCommandLine(options, s => s.UseEqualToken = true));
+            Logger.LogToFile(DateTime.Now.ToString("s") + "\t" + Logger.ProcessId.ToString().PadLeft(10) + "\t" + APPLICATION_ALIAS + " " + Parser.Default.FormatCommandLine(options, s => s.UseEqualToken = true));
         }
 
         private static Plex.DataAdapter GetPlexDataAdapter(string plexDataPath)
