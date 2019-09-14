@@ -10,15 +10,17 @@ namespace PlexDvrWaker.Plex
         public const string PRESS_ANY_KEY_TO_STOP = "Press any key to stop monitoring";
 
         private readonly DataAdapter _plexAdapter;
+        private readonly TaskScheduler _taskScheduler;
         private readonly TimeSpan _bundledChangesTimeSpan;
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;
         private readonly Object _libraryChangedLock = new Object();
         private DateTime? _libraryChangedDate;
 
-        public LibraryMonitor(DataAdapter plexAdapter, TimeSpan bundledChangesTimeSpan)
+        public LibraryMonitor(DataAdapter plexAdapter, TaskScheduler taskScheduler, int debounceSeconds)
         {
             _plexAdapter = plexAdapter;
-            _bundledChangesTimeSpan = bundledChangesTimeSpan;
+            _taskScheduler = taskScheduler;
+            _bundledChangesTimeSpan = TimeSpan.FromSeconds(debounceSeconds);
 
             _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(_plexAdapter.LibraryDatabaseFileName), Path.GetFileName(_plexAdapter.LibraryDatabaseFileName) + "*")
             {
@@ -90,7 +92,7 @@ namespace PlexDvrWaker.Plex
             var wakeupTime = _plexAdapter.GetNextScheduledRecordingTime();
             if (wakeupTime.HasValue)
             {
-                TaskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value, false);
+                _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value, false);
             }
         }
 
@@ -109,27 +111,15 @@ namespace PlexDvrWaker.Plex
                     }
                 }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-
                 disposedValue = true;
             }
         }
-
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~PlexAdapter()
-        // {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
         }
         #endregion
     }

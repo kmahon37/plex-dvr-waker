@@ -3,6 +3,7 @@ using PlexDvrWaker.CmdLine;
 using PlexDvrWaker.Common;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace PlexDvrWaker
 {
@@ -38,28 +39,39 @@ namespace PlexDvrWaker
         {
             SetupLogger(options);
 
-            Plex.TaskScheduler.PlexDataPath = options.PlexDataPathIsDefault ? null : options.PlexDataPath;
+            var taskScheduler = new Plex.TaskScheduler(options.PlexDataPath);
 
             if (options.Wakeup)
             {
-                var da = GetPlexDataAdapter(options.PlexDataPath);
-                var wakeupTime = da.GetNextScheduledRecordingTime();
+                if (options.WakeupRefreshDelaySeconds.HasValue && options.WakeupRefreshDelaySeconds.Value > 0)
+                {
+                    // Used to wait until after the current recording has started before we refresh the next scheduled recording time
+                    Logger.LogInformation($"Waiting {options.WakeupRefreshDelaySeconds.Value} seconds before refreshing the next scheduled recording time.");
+                    Task.Delay(TimeSpan.FromSeconds(options.WakeupRefreshDelaySeconds.Value)).Wait();
+                }
+
+                var plexDataAdapter = new Plex.DataAdapter(options.PlexDataPath);
+                var wakeupTime = plexDataAdapter.GetNextScheduledRecordingTime();
 
                 if (wakeupTime.HasValue)
                 {
-                    Plex.TaskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value);
+                    var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value);
+                    if (!created)
+                    {
+                        return (int)ExitCode.AccessDeniedDuringTaskCreation;
+                    }
                 }
                 else
                 {
                     // No shows to record, remove wakeup task, if exists
-                    Plex.TaskScheduler.DeleteWakeUpTask();
+                    taskScheduler.DeleteWakeUpTask();
                     Console.WriteLine("Wakeup task cannot be created because there are no upcoming scheduled recordings.");
                 }
             }
 
             if (options.Sync)
             {
-                var created = Plex.TaskScheduler.CreateOrUpdateDVRSyncTask(options.SyncIntervalMinutes.Value);
+                var created = taskScheduler.CreateOrUpdateDVRSyncTask(options.SyncIntervalMinutes.Value);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -68,7 +80,7 @@ namespace PlexDvrWaker
 
             if (options.Monitor)
             {
-                var created = Plex.TaskScheduler.CreateOrUpdateDVRMonitorTask(options.DebounceSeconds.Value);
+                var created = taskScheduler.CreateOrUpdateDVRMonitorTask(options.MonitorDebounceSeconds.Value);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -82,8 +94,8 @@ namespace PlexDvrWaker
         {
             SetupLogger(options);
 
-            var da = GetPlexDataAdapter(options.PlexDataPath);
-            da.PrintScheduledRecordings();
+            var plexDataAdapter = new Plex.DataAdapter(options.PlexDataPath);
+            plexDataAdapter.PrintScheduledRecordings();
 
             return (int)ExitCode.Success;
         }
@@ -92,10 +104,11 @@ namespace PlexDvrWaker
         {
             SetupLogger(options);
 
-            var da = GetPlexDataAdapter(options.PlexDataPath);
-            using (var pm = new Plex.LibraryMonitor(da, TimeSpan.FromSeconds(options.DebounceSeconds.Value)))
+            var plexDataAdapter = new Plex.DataAdapter(options.PlexDataPath);
+            var taskScheduler = new Plex.TaskScheduler(options.PlexDataPath);
+            using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value))
             {
-                pm.Enabled = true;
+                libraryMonitor.Enabled = true;
 
                 Console.WriteLine("Started monitoring the Plex library database");
                 Console.WriteLine(Plex.LibraryMonitor.PRESS_ANY_KEY_TO_STOP);
@@ -110,13 +123,18 @@ namespace PlexDvrWaker
             Logger.ProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
             Logger.Verbose = options.Verbose;
             Logger.InteractiveMonitor = (typeof(T) == typeof(MonitorOptions));
-            Logger.LogToFile(DateTime.Now.ToString("s") + "\t" + Logger.ProcessId.ToString().PadLeft(10) + "\t" + APPLICATION_ALIAS + " " + Parser.Default.FormatCommandLine(options, s => s.UseEqualToken = true));
+            Logger.LogToFile(string.Concat(
+                DateTime.Now.ToString("s"),
+                "\t",
+                Logger.ProcessId.ToString().PadLeft(10),
+                "\t",
+                APPLICATION_ALIAS,
+                " ",
+                Parser.Default.FormatCommandLine(options, s => {
+                    s.UseEqualToken = true;
+                    s.ShowHidden = true;
+                })
+            ));
         }
-
-        private static Plex.DataAdapter GetPlexDataAdapter(string plexDataPath)
-        {
-            return new Plex.DataAdapter(plexDataPath);
-        }
-
     }
 }

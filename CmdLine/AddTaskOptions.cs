@@ -12,6 +12,27 @@ namespace PlexDvrWaker.CmdLine
             HelpText = "Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the computer 15 seconds before the next scheduled recording time.")]
         public bool Wakeup { get; set; }
 
+        private int? _wakeupRefreshDelaySeconds;
+        [Option("delay",
+            MetaValue = "SECONDS",
+            Hidden = true,
+            HelpText = "The number of seconds to wait before updating the Windows Task Scheduler 'wakeup' task.  This is used when the 'wakeup' task is triggered so that it waits until the current recording has started before updating the 'wakeup' task with the next scheduled recording time.")]
+        public int? WakeupRefreshDelaySeconds
+        {
+            get
+            {
+                return _wakeupRefreshDelaySeconds;
+            }
+            set
+            {
+                if (value.HasValue && value.Value < 0)
+                {
+                    throw new ArgumentOutOfRangeException("delay", value.Value, "The value must be greater than or equal to 0.");
+                }
+                _wakeupRefreshDelaySeconds = value;
+            }
+        }
+
         [Option("sync",
             HelpText = "Creates or updates a Windows Task Scheduler 'sync' task to run at the specified interval and sync the 'wakeup' task with the next scheduled recording time.")]
         public bool Sync { get; set; }
@@ -31,7 +52,7 @@ namespace PlexDvrWaker.CmdLine
             {
                 if (value.HasValue && value.Value < 1)
                 {
-                    throw new ArgumentOutOfRangeException("sync", value.Value, "The value must be greater than or equal to 1.");
+                    throw new ArgumentOutOfRangeException("interval", value.Value, "The value must be greater than or equal to 1.");
                 }
                 _syncIntervalMinutes = value;
             }
@@ -41,17 +62,17 @@ namespace PlexDvrWaker.CmdLine
             HelpText = "Creates or updates a Windows Task Scheduler 'monitor' task to run in the background when the computer starts up that will monitor the Plex library database file for changes and update the 'wakeup' task based on the next scheduled recording time.")]
         public bool Monitor { get; set; }
 
-        private int? _debounceSeconds;
+        private int? _monitorDebounceSeconds;
 
         [Option("debounce",
             MetaValue = "SECONDS",
             Default = 5,
             HelpText = "Since the Plex library database can change multiple times within a short time, upon the first change it will wait the specified number of seconds before it updates the Task Scheduler 'wakeup' task with the next scheduled recording time.")]
-        public int? DebounceSeconds
+        public int? MonitorDebounceSeconds
         {
             get
             {
-                return _debounceSeconds;
+                return _monitorDebounceSeconds;
             }
             set
             {
@@ -59,7 +80,7 @@ namespace PlexDvrWaker.CmdLine
                 {
                     throw new ArgumentOutOfRangeException("debounce", value.Value, "The value must be greater than or equal to 1.");
                 }
-                _debounceSeconds = value;
+                _monitorDebounceSeconds = value;
             }
         }
 
@@ -72,7 +93,7 @@ namespace PlexDvrWaker.CmdLine
                 return new List<Example>() {
                     new Example("Create the 'wakeup' task", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new AddTaskOptions { Wakeup = true }),
                     new Example("Create the 'sync' task", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new AddTaskOptions { Sync = true, SyncIntervalMinutes = 15 }),
-                    new Example("Create the 'monitor' task", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new AddTaskOptions { Monitor = true, DebounceSeconds = 5 })
+                    new Example("Create the 'monitor' task", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new AddTaskOptions { Monitor = true, MonitorDebounceSeconds = 5 })
                 };
             }
         }
