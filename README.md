@@ -29,7 +29,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
     - [Download from Microsoft](https://dotnet.microsoft.com/download)
     - You only need the "Runtime" (not the "SDK") installer.
 2. Download the latest version of Plex DVR Waker below, or choose a specific version from the [`dist` folder](https://github.com/kmahon37/plex-dvr-waker/tree/master/dist).
-    - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/raw/master/dist/PlexDvrWaker.1.0.0.zip)
+    - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/raw/master/dist/PlexDvrWaker.1.0.1.zip)
     - Unzip the contents to your favorite folder.
 
 ## Quick Start
