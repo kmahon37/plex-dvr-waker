@@ -28,8 +28,8 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 1. Download and install the Windows .NET Core 2.2+ Runtime
     - [Download from Microsoft](https://dotnet.microsoft.com/download)
     - You only need the "Runtime" (not the "SDK") installer.
-2. Download the latest version of Plex DVR Waker below, or choose a specific version from the [`dist` folder](https://github.com/kmahon37/plex-dvr-waker/tree/master/dist).
-    - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/raw/master/dist/PlexDvrWaker.1.0.1.zip)
+2. Download the latest version of Plex DVR Waker
+    - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/releases)
     - Upgrading to a newer version?
       - If you are using the `monitor` task, then you must first stop it before you can delete/overwrite the `PlexDvrWaker.dll` file.
         1. Open the Windows Task Scheduler.
