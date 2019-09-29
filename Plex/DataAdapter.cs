@@ -4,43 +4,24 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SQLite;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PlexDvrWaker.Plex
 {
+    /// <summary>
+    /// Class for reading the Plex library databases
+    /// </summary>
     internal class DataAdapter
     {
         private readonly string _libraryDatabaseFileName;
         private readonly Dictionary<string, ScheduledRecording> _scheduledRecordings = new Dictionary<string, ScheduledRecording>();
         private readonly object _scheduledRecordingsLock = new object();
 
-        public DataAdapter(string plexDataPath)
+        public DataAdapter()
         {
-            //Initialize database file name
-            _libraryDatabaseFileName = Path.GetFullPath(
-                Path.Join(
-                    Environment.ExpandEnvironmentVariables(plexDataPath),
-                    @"Plex Media Server\Plug-in Support\Databases\com.plexapp.plugins.library.db"
-                )
-            );
-
-            if (!File.Exists(_libraryDatabaseFileName))
-            {
-                throw new FileNotFoundException("Unable to find the Plex library database file.", _libraryDatabaseFileName);
-            }
-        }
-
-        public string LibraryDatabaseFileName
-        {
-            get
-            {
-                return _libraryDatabaseFileName;
-            }
+            _libraryDatabaseFileName = Settings.LibraryDatabaseFileName;
         }
 
         public ReadOnlyCollection<ScheduledRecording> GetScheduledRecordings()
@@ -57,7 +38,14 @@ namespace PlexDvrWaker.Plex
                 RemoveExistingTvShows();
                 RemoveExistingMovies();
 
-                Logger.LogInformation($"Found {_scheduledRecordings.Count()} upcoming scheduled recordings");
+                var count = _scheduledRecordings.Count();
+                var msg = $"Found {count} upcoming scheduled recordings";
+                if (count > 0)
+                {
+                    var nextRecTime = GetNextScheduledRecording_Internal(_scheduledRecordings.Values).StartTimeWithOffset;
+                    msg += $" starting at {nextRecTime}";
+                }
+                Logger.LogInformation(msg);
 
                 return new ReadOnlyCollection<ScheduledRecording>(_scheduledRecordings.Values.ToArray());
             }
@@ -65,7 +53,13 @@ namespace PlexDvrWaker.Plex
 
         public ScheduledRecording GetNextScheduledRecording()
         {
-            return GetScheduledRecordings()
+            var recs = GetScheduledRecordings();
+            return GetNextScheduledRecording_Internal(recs);
+        }
+
+        private ScheduledRecording GetNextScheduledRecording_Internal(IEnumerable<ScheduledRecording> scheduledRecordings)
+        {
+            return scheduledRecordings
                 .Where(r => r.StartTimeWithOffset >= DateTime.Now)
                 .OrderBy(r => r.StartTimeWithOffset)
                 .FirstOrDefault();
@@ -75,6 +69,46 @@ namespace PlexDvrWaker.Plex
         {
             var nextRec = GetNextScheduledRecording();
             return nextRec?.StartTimeWithOffset;
+        }
+
+        public ScheduledMaintenance GetNextScheduledMaintenance()
+        {
+            Logger.LogInformation("Getting next Plex maintenance time");
+
+            var scheduledMaintenance = new ScheduledMaintenance
+            {
+                StartHour = Settings.ButlerStartHour,
+                EndHour = Settings.ButlerEndHour
+            };
+
+            Logger.LogInformation($"Plex maintenance is {scheduledMaintenance.StartHourString} to {scheduledMaintenance.EndHourString} every day");
+            Logger.LogInformation($"Next scheduled maintenance time is {scheduledMaintenance.StartTime} to {scheduledMaintenance.EndTime}");
+
+            return scheduledMaintenance;
+        }
+
+        public DateTime GetNextScheduledMaintenanceTime()
+        {
+            var scheduledMaintenance = GetNextScheduledMaintenance();
+            return scheduledMaintenance.StartTime;
+        }
+
+        public DateTime GetNextWakeupTime()
+        {
+            var nextRecordingTime = GetNextScheduledRecordingTime();
+            var nextMaintenanceTime = GetNextScheduledMaintenanceTime();
+            DateTime wakeupTime;
+
+            if (nextRecordingTime.HasValue && DateTime.Compare(nextRecordingTime.Value, nextMaintenanceTime) < 0)
+            {
+                wakeupTime = nextRecordingTime.Value;
+            }
+            else
+            {
+                wakeupTime = nextMaintenanceTime;
+            }
+
+            return wakeupTime;
         }
 
         public void PrintScheduledRecordings()
@@ -101,7 +135,7 @@ namespace PlexDvrWaker.Plex
                     {
                         rec.ShowTitle,
                         rec.SeasonTitle,
-                        (rec.SubscriptionMetadataType == Plex.MetadataType.Episode || rec.SubscriptionMetadataType == Plex.MetadataType.Show) && rec.EpisodeNumber > 0
+                        (rec.SubscriptionMetadataType == MetadataType.Episode || rec.SubscriptionMetadataType == MetadataType.Show) && rec.EpisodeNumber > 0
                             ? rec.SeasonNumber.ToString("'S'00") + rec.EpisodeNumber.ToString("'E'00")
                             : string.Empty,
                         rec.EpisodeTitle
@@ -115,6 +149,17 @@ namespace PlexDvrWaker.Plex
             {
                 Console.WriteLine("No upcoming scheduled recordings.");
             }
+
+            Console.WriteLine();
+        }
+
+        public void PrintNextMaintenanceTime()
+        {
+            var scheduledMaintenance = GetNextScheduledMaintenance();
+
+            Console.WriteLine($"Plex maintenance is {scheduledMaintenance.StartHourString} to {scheduledMaintenance.EndHourString} every day");
+            Console.WriteLine($"Next scheduled maintenance time is {scheduledMaintenance.StartTime} to {scheduledMaintenance.EndTime}");
+            Console.WriteLine();
         }
 
         private void LoadSubscriptions()
@@ -123,7 +168,7 @@ namespace PlexDvrWaker.Plex
 
             // Get scheduled show/episode ids from library
             var sql = new StringBuilder()
-                .AppendLine("select")
+                .AppendLine("select distinct")
                 .AppendLine("  media_subscriptions.id as sub_id,")
                 .AppendLine("  media_subscriptions.metadata_type,")
                 .AppendLine($"  coalesce((case media_subscriptions.metadata_type when {(int)MetadataType.Show} then metadata_items.title when {(int)MetadataType.Episode} then null end), '') as show_title,")
@@ -145,36 +190,41 @@ namespace PlexDvrWaker.Plex
 
                     while (reader.Read())
                     {
-                        var extraDataDict = Uri.UnescapeDataString(reader.GetString(5))
-                            .Split('&').ToDictionary(
-                                s => s.Split('=', 1)[0],
-                                s => s.Split('=', 2)[1]
-                            );
-                        var startOffsetMinutes = 0;
-                        var endOffsetMinutes = 0;
+                        var remoteId = Uri.UnescapeDataString(reader.GetString(4));
 
-                        if (extraDataDict.TryGetValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
+                        if (!_scheduledRecordings.ContainsKey(remoteId))
                         {
-                            int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
+                            var extraDataDict = Uri.UnescapeDataString(reader.GetString(5))
+                                .Split('&').ToDictionary(
+                                    s => s.Split('=', 1)[0],
+                                    s => s.Split('=', 2)[1]
+                                );
+                            var startOffsetMinutes = 0;
+                            var endOffsetMinutes = 0;
+
+                            if (extraDataDict.TryGetValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
+                            {
+                                int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
+                            }
+
+                            if (extraDataDict.TryGetValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
+                            {
+                                int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
+                            }
+
+                            var rec = new ScheduledRecording()
+                            {
+                                SubscriptionId = reader.GetInt32(0),
+                                SubscriptionMetadataType = (MetadataType)Enum.Parse(typeof(MetadataType), reader.GetInt32(1).ToString()),
+                                ShowTitle = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty,
+                                EpisodeTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty,
+                                RemoteId = remoteId,
+                                StartOffsetMinutes = startOffsetMinutes,
+                                EndOffsetMinutes = endOffsetMinutes
+                            };
+
+                            _scheduledRecordings.Add(remoteId, rec);
                         }
-
-                        if (extraDataDict.TryGetValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
-                        {
-                            int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
-                        }
-
-                        var rec = new ScheduledRecording()
-                        {
-                            SubscriptionId = reader.GetInt32(0),
-                            SubscriptionMetadataType = (MetadataType)Enum.Parse(typeof(MetadataType), reader.GetInt32(1).ToString()),
-                            ShowTitle = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty,
-                            EpisodeTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty,
-                            RemoteId = Uri.UnescapeDataString(reader.GetString(4)),
-                            StartOffsetMinutes = startOffsetMinutes,
-                            EndOffsetMinutes = endOffsetMinutes
-                        };
-
-                        _scheduledRecordings.Add(rec.RemoteId, rec);
                     }
                 }
             }

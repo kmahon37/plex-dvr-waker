@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace PlexDvrWaker.Plex
 {
+    /// <summary>
+    /// Class for monitoring the Plex library databases for changes
+    /// </summary>
     internal class LibraryMonitor: IDisposable
     {
         public const string PRESS_ANY_KEY_TO_STOP = "Press any key to stop monitoring";
@@ -22,7 +25,7 @@ namespace PlexDvrWaker.Plex
             _taskScheduler = taskScheduler;
             _bundledChangesTimeSpan = TimeSpan.FromSeconds(debounceSeconds);
 
-            _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(_plexAdapter.LibraryDatabaseFileName), Path.GetFileName(_plexAdapter.LibraryDatabaseFileName) + "*")
+            _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(Settings.LibraryDatabaseFileName), Path.GetFileName(Settings.LibraryDatabaseFileName) + "*")
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 IncludeSubdirectories = false,
