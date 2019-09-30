@@ -4,7 +4,6 @@ using PlexDvrWaker.CmdLine;
 using PlexDvrWaker.Common;
 using System;
 using System.IO;
-using System.Text;
 
 namespace PlexDvrWaker.Plex
 {
@@ -38,7 +37,7 @@ namespace PlexDvrWaker.Plex
             Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
             var td = TaskService.Instance.NewTask();
-            td.RegistrationInfo.Description = "This task will wake the computer for the next Plex DVR recording.";
+            td.RegistrationInfo.Description = "This task will wake the computer for the next Plex DVR recording or maintenance time.";
             td.Principal.LogonType = TaskLogonType.S4U;
             td.Principal.RunLevel = TaskRunLevel.Highest;
             td.Settings.Hidden = true;
@@ -78,15 +77,6 @@ namespace PlexDvrWaker.Plex
             }
 
             return true;
-        }
-
-        public void DeleteWakeUpTask()
-        {
-            Logger.LogInformation($"Deleting wakeup task (if exists): {TASK_NAME_DVR_WAKE}");
-
-            TaskService.Instance.RootFolder.DeleteTask(TASK_NAME_DVR_WAKE, false);
-
-            Logger.LogInformation("Wakeup task deleted");
         }
 
         public bool CreateOrUpdateDVRSyncTask(int intervalMinutes)

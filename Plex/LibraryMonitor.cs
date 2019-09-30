@@ -92,11 +92,8 @@ namespace PlexDvrWaker.Plex
         {
             Logger.LogInformation("Refreshing next wakeup time");
 
-            var wakeupTime = _plexAdapter.GetNextScheduledRecordingTime();
-            if (wakeupTime.HasValue)
-            {
-                _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value, false);
-            }
+            var wakeupTime = _plexAdapter.GetNextWakeupTime();
+            _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, false);
         }
 
         #region IDisposable Support
