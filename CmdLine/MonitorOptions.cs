@@ -5,7 +5,7 @@ using CommandLine.Text;
 
 namespace PlexDvrWaker.CmdLine
 {
-    [Verb("monitor", HelpText = "Monitors the Plex library database for changes and updates the 'wakeup' task based on the next scheduled recording time.")]
+    [Verb("monitor", HelpText = "Monitors the Plex library database for changes and updates the 'wakeup' task based on the next scheduled recording time or Plex maintenance time.")]
     internal class MonitorOptions : ProgramOptions
     {
         private int? _debounceSeconds;
@@ -13,7 +13,7 @@ namespace PlexDvrWaker.CmdLine
         [Option("debounce",
             MetaValue = "SECONDS",
             Default = 5,
-            HelpText = "Since the database can change multiple times within a short time, upon the first change it will wait the specified number of seconds before it updates the Task Scheduler 'wakeup' task with the next scheduled recording time.  (Minimum: 1 second)")]
+            HelpText = "Since the database can change multiple times within a short time, upon the first change it will wait the specified number of seconds before it updates the Task Scheduler 'wakeup' task with the next scheduled recording time or Plex maintenance time.  (Minimum: 1 second)")]
         public int? DebounceSeconds
         {
             get
