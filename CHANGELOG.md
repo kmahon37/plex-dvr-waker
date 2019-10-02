@@ -8,6 +8,7 @@
 ### Fixed bugs:
 - Fixed Plex library database file validation for all commands [#1](https://github.com/kmahon37/plex-dvr-waker/issues/1)
 - Fixed error when the recording schedule contains duplicate show Ids [#1](https://github.com/kmahon37/plex-dvr-waker/issues/1)
+- Fixed error fetching scheduled recordings when Plex contains no scheduled recordings [#2](https://github.com/kmahon37/plex-dvr-waker/issues/2)
 
 ## 1.0.1 (2019-09-15)
 - Fixed issue with incorrect wakeup times when an episode has repeat airings.  It was incorrectly using the last airing time, but this fix now uses the earliest airing time.
