@@ -7,6 +7,9 @@ using System.IO;
 
 namespace PlexDvrWaker.Plex
 {
+    /// <summary>
+    /// Class for creating Windows Task Scheduler tasks
+    /// </summary>
     internal class TaskScheduler
     {
         private const string TASK_SCHEDULER_FOLDER = "Plex DVR Waker";
@@ -14,18 +17,11 @@ namespace PlexDvrWaker.Plex
         private const string TASK_NAME_DVR_SYNC = TASK_SCHEDULER_FOLDER + "\\DVR sync";
         private const string TASK_NAME_DVR_MONITOR = TASK_SCHEDULER_FOLDER + "\\DVR monitor";
 
-        private readonly string _plexDataPath;
         private readonly string _workingDirectory;
         private readonly string _dllName;
 
-        public TaskScheduler(string plexDataPath)
+        public TaskScheduler()
         {
-            // If the path is the default, then don't set _plexDataPath.  This will exclude the argument for it when we create the tasks.
-            if (!string.Equals(plexDataPath, ProgramOptions.DEFAULT_PLEX_DATA_PATH, StringComparison.InvariantCultureIgnoreCase))
-            {
-                _plexDataPath = plexDataPath;
-            }
-
             var fullPath = typeof(TaskScheduler).Assembly.Location;
             _workingDirectory = Path.GetDirectoryName(fullPath);
             _dllName = Path.GetFileName(fullPath);
@@ -41,7 +37,7 @@ namespace PlexDvrWaker.Plex
             Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
             var td = TaskService.Instance.NewTask();
-            td.RegistrationInfo.Description = "This task will wake the computer for the next Plex DVR recording.";
+            td.RegistrationInfo.Description = "This task will wake the computer for the next Plex DVR recording or maintenance time.";
             td.Principal.LogonType = TaskLogonType.S4U;
             td.Principal.RunLevel = TaskRunLevel.Highest;
             td.Settings.Hidden = true;
@@ -65,8 +61,7 @@ namespace PlexDvrWaker.Plex
                 {
                     // Recreate/update the wakeup task "after" the current recording has started.
                     Wakeup = true,
-                    WakeupRefreshDelaySeconds = 30,
-                    PlexDataPath = _plexDataPath
+                    WakeupRefreshDelaySeconds = 30
                 },
                 settings =>
                 {
@@ -82,15 +77,6 @@ namespace PlexDvrWaker.Plex
             }
 
             return true;
-        }
-
-        public void DeleteWakeUpTask()
-        {
-            Logger.LogInformation($"Deleting wakeup task (if exists): {TASK_NAME_DVR_WAKE}");
-
-            TaskService.Instance.RootFolder.DeleteTask(TASK_NAME_DVR_WAKE, false);
-
-            Logger.LogInformation("Wakeup task deleted");
         }
 
         public bool CreateOrUpdateDVRSyncTask(int intervalMinutes)
@@ -119,8 +105,7 @@ namespace PlexDvrWaker.Plex
                 WorkingDirectory = _workingDirectory,
                 Arguments = _dllName + " " + Parser.Default.FormatCommandLine(new AddTaskOptions
                 {
-                    Wakeup = true,
-                    PlexDataPath = _plexDataPath
+                    Wakeup = true
                 },
                 settings =>
                 {
@@ -167,8 +152,7 @@ namespace PlexDvrWaker.Plex
                 Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
-                        DebounceSeconds = debounceSeconds,
-                        PlexDataPath = _plexDataPath
+                        DebounceSeconds = debounceSeconds
                     },
                     settings =>
                     {

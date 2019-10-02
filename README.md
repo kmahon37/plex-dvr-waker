@@ -8,10 +8,10 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 
 ## Supported Features
 - Syncs with and/or monitors the Plex library database and schedules a wakeup task
-- Wakes up the computer 15 seconds before the next scheduled recording
+- Wakes up the computer 15 seconds before the next scheduled recording or Plex maintenance time
 - Recording start time offset is taken into account
 - Recognizes previously recorded TV shows and movies (as best as possible) so that it doesn't inadvertently wake the computer for something you already have recorded.
-- Prints out upcoming scheduled recordings
+- Prints out upcoming scheduled recordings and Plex maintenance time
 - Support for custom Plex application data path
 
 > _NOTE: It does *not* support any other Plex "advanced record options" (ie: Prefer HD, Replace lower resolution items, etc)._
@@ -28,12 +28,17 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 1. Download and install the Windows .NET Core 2.2+ Runtime
     - [Download from Microsoft](https://dotnet.microsoft.com/download)
     - You only need the "Runtime" (not the "SDK") installer.
-2. Download the latest version of Plex DVR Waker below, or choose a specific version from the [`dist` folder](https://github.com/kmahon37/plex-dvr-waker/tree/master/dist).
-    - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/raw/master/dist/PlexDvrWaker.1.0.1.zip)
+2. Download the latest version of Plex DVR Waker
+    - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/releases/latest)
+    - Upgrading to a newer version?
+      - If you are using the `monitor` task, then you must first stop it before you can delete/overwrite the `PlexDvrWaker.dll` file.
+        1. Open the Windows Task Scheduler.
+        2. Go to the "Plex DVR Waker" folder.
+        3. Right-click on the "DVR monitor" task, and click "End".
     - Unzip the contents to your favorite folder.
 
 ## Quick Start
-If you want a quick way to get started, simply run the following `sync` command from an "Administrator" Command Prompt.  It will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes and create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording.
+If you want a quick way to get started, simply run the following `sync` command from an "Administrator" Command Prompt.  It will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes and create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording or Plex maintenance time.
 ```
 dotnet PlexDvrWaker.dll add-task --sync
 ```
@@ -50,22 +55,19 @@ The main help screen displays the top-level help for the available commands.  Yo
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll
-dotnet PlexDvrWaker.dll help
-dotnet PlexDvrWaker.dll help add-task
-dotnet PlexDvrWaker.dll help list
-dotnet PlexDvrWaker.dll help monitor
+dotnet PlexDvrWaker.dll help [add-task|list|monitor]
 ```
 
 *Example output:*
 ```
   add-task    Add/update Windows Task Scheduler tasks for waking the computer for the next scheduled
-              recording, syncing the next wakeup, or monitoring the Plex library database for changes.
+              recording or Plex maintenance time, syncing the next wakeup, or monitoring the Plex
+              library database for changes.
 
   list        Prints upcoming scheduled recordings to standard output.
 
   monitor     Monitors the Plex library database for changes and updates the 'wakeup' task based on the
-              next scheduled recording time.
+              next scheduled recording time or Plex maintenance time.
 
   help        Display more information on a specific command.
 
@@ -73,9 +75,9 @@ dotnet PlexDvrWaker.dll help monitor
 ```
 
 ### Adding a wakeup, sync, or monitor task <a name="cmdline-add-task"></a>
-Plex DVR Waker works primarily by using Windows Task Scheduler tasks to keep up-to-date with the Plex library database and keep a wakeup task scheduled for your next recording time.  You can use either the `sync` or `monitor` task, or both at the same time - the choice is yours based on your needs.
+Plex DVR Waker works primarily by using Windows Task Scheduler tasks to keep up-to-date with the Plex library database and keep a wakeup task scheduled for your next recording time or Plex maintenance time.  You can use either the `sync` or `monitor` task, or both at the same time - the choice is yours based on your needs.
 
-The `wakeup` task will wakeup the computer from sleep 15 seconds before the next scheduled recording time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.  The `wakeup` task will either not be created or be deleted if there are no shows to record.
+The `wakeup` task will wakeup the computer from sleep 15 seconds before the next scheduled recording time or Plex maintenance time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.  The `wakeup` task will either not be created or be deleted if there are no shows to record.
 
 The `sync` task will poll the Plex library database at a specified interval (default every 15 minutes) and create/update the `wakeup` task for you automatically.  This is a nice lightweight solution, however it could theoretically miss something if, for example, you schedule a recording to start in 8 minutes and then immediately put the computer to sleep before the next `sync` task can run.
 
@@ -83,74 +85,77 @@ The `monitor` task will watch the Plex library database files for changes and al
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll add-task --wakeup [--plexdata=PATH] [--verbose]
-dotnet PlexDvrWaker.dll add-task --sync [--interval=MINUTES] [--plexdata=PATH] [--verbose]
-dotnet PlexDvrWaker.dll add-task --monitor [--debounce=SECONDS] [--plexdata=PATH] [--verbose]
+dotnet PlexDvrWaker.dll add-task --wakeup [--verbose]
+dotnet PlexDvrWaker.dll add-task --sync [--interval=MINUTES] [--verbose]
+dotnet PlexDvrWaker.dll add-task --monitor [--debounce=SECONDS] [--verbose]
 ```
 
 *Arguments:*
 ```
   --wakeup              Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the
-                        computer 15 seconds before the next scheduled recording time.
+                        computer 15 seconds before the next scheduled recording time or Plex maintenance time.
 
   --sync                Creates or updates a Windows Task Scheduler 'sync' task to run at the specified
-                        interval and sync the 'wakeup' task with the next scheduled recording time.
+                        interval and sync the 'wakeup' task with the next scheduled recording time or Plex
+                        maintenance time.
 
   --interval=MINUTES    (Default: 15) The interval to sync the 'wakeup' task with the next scheduled
-                        recording time.
+                        recording time or Plex maintenance time.
 
   --monitor             Creates or updates a Windows Task Scheduler 'monitor' task to run in the background
                         when the computer starts up that will monitor the Plex library database file for
-                        changes and update the 'wakeup' task based on the next scheduled recording time.
+                        changes and update the 'wakeup' task based on the next scheduled recording time or
+                        Plex maintenance time.
 
   --debounce=SECONDS    (Default: 5) Since the Plex library database can change multiple times within a
                         short time, upon the first change it will wait the specified number of seconds
                         before it updates the Task Scheduler 'wakeup' task with the next scheduled recording
-                        time.
-
-  --plexdata=PATH       (Default: %LOCALAPPDATA%) The path where Plex stores its local application data.
+                        time or Plex maintenance time.
 
   --verbose             Prints all messages to standard output.
 ```
 
-*Example output (--wakeup):*
+*Example output (`--wakeup`):*
 ```
 Wakeup task scheduled for 9/14/2019 12:59:45 PM
 ```
 
-*Example output (--sync):*
+*Example output (`--sync`):*
 ```
 DVR sync task scheduled for every 15 minutes
 ```
 
-*Example output (--monitor):*
+*Example output (`--monitor`):*
 ```
 DVR monitor task scheduled to run at startup
 DVR monitor task has been started
 ```
 
 ### Display upcoming scheduled recordings <a name="cmdline-list"></a>
-You can display the upcoming scheduled recordings that are recognized by Plex DVR Waker.  This is useful to compare to your actual recording schedule in Plex.  In theory, the two schedules should match (_see disclaimer above_).  The start/end times displayed here will include any offsets configured in Plex.
+You can display the upcoming scheduled recordings and Plex maintenance that is recognized by Plex DVR Waker.  This is useful to compare to your actual recording schedule in Plex.  In theory, the two schedules should match (_see disclaimer above_).  The start/end times displayed here will include any offsets configured in Plex.
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll list [--plexdata=PATH] [--verbose]
+dotnet PlexDvrWaker.dll list [--maintenance] [--verbose]
 ```
 
 *Arguments:*
 ```
-  --plexdata=PATH    (Default: %LOCALAPPDATA%) The path where Plex stores its local application data.
+  --maintenance    Prints the next Plex maintenance time to standard output.
 
-  --verbose          Prints all messages to standard output.
+  --verbose        Prints all messages to standard output.
 ```
 
-*Example output:*
+*Example output (`--maintenance`):*
 ```
 Start Time              End Time                Title
 --------------------    --------------------    --------------------------------------------------
 9/14/2019 1:00:00 PM    9/14/2019 2:00:00 PM    MacGyver (2016) - S01E22 - The Assassin
 9/16/2019 6:30:00 PM    9/16/2019 7:00:00 PM    The Big Bang Theory - S09E22 - The Fermentation Bifurcation
 9/16/2019 7:00:00 PM    9/16/2019 7:30:00 PM    The Big Bang Theory - S04E16 - The Cohabitation Formulation
+
+Plex maintenance is 2am to 3am every day
+Next scheduled maintenance time is 9/15/2019 2:00:00 AM to 9/15/2019 3:00:00 AM
 ```
 
 ### Monitor Plex library database (interactive mode) <a name="cmdline-monitor"></a>
@@ -158,17 +163,15 @@ You can also monitor the Plex library database for changes and automatically ref
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--plexdata=PATH] [--verbose]
+dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--verbose]
 ```
 
 *Arguments:*
 ```
   --debounce=SECONDS    (Default: 5) Since the database can change multiple times within a short time,
                         upon the first change it will wait the specified number of seconds before it
-                        updates the Task Scheduler 'wakeup' task with the next scheduled recording time.
-                        (Minimum: 1 second)
-
-  --plexdata=PATH       (Default: %LOCALAPPDATA%) The path where Plex stores its local application data.
+                        updates the Task Scheduler 'wakeup' task with the next scheduled recording time
+                        or Plex maintenance time. (Minimum: 1 second)
 
   --verbose             Prints all messages to standard output.
 ```

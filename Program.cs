@@ -2,6 +2,7 @@
 using PlexDvrWaker.CmdLine;
 using PlexDvrWaker.Common;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -13,7 +14,8 @@ namespace PlexDvrWaker
         {
             Success = 0,
             ArgumentParseError = 1,
-            AccessDeniedDuringTaskCreation = 2
+            AccessDeniedDuringTaskCreation = 2,
+            PlexLibraryDatabaseNotFound = 3
         }
 
         internal const string APPLICATION_ALIAS = "dotnet PlexDvrWaker.dll";
@@ -38,8 +40,12 @@ namespace PlexDvrWaker
         private static int RunAddTask(AddTaskOptions options)
         {
             SetupLogger(options);
+            if (!PlexLibraryDatabaseExists())
+            {
+                return (int)ExitCode.PlexLibraryDatabaseNotFound;
+            }
 
-            var taskScheduler = new Plex.TaskScheduler(options.PlexDataPath);
+            var taskScheduler = new Plex.TaskScheduler();
 
             if (options.Wakeup)
             {
@@ -50,22 +56,12 @@ namespace PlexDvrWaker
                     Task.Delay(TimeSpan.FromSeconds(options.WakeupRefreshDelaySeconds.Value)).Wait();
                 }
 
-                var plexDataAdapter = new Plex.DataAdapter(options.PlexDataPath);
-                var wakeupTime = plexDataAdapter.GetNextScheduledRecordingTime();
-
-                if (wakeupTime.HasValue)
+                var plexDataAdapter = new Plex.DataAdapter();
+                var wakeupTime = plexDataAdapter.GetNextWakeupTime();
+                var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime);
+                if (!created)
                 {
-                    var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime.Value);
-                    if (!created)
-                    {
-                        return (int)ExitCode.AccessDeniedDuringTaskCreation;
-                    }
-                }
-                else
-                {
-                    // No shows to record, remove wakeup task, if exists
-                    taskScheduler.DeleteWakeUpTask();
-                    Console.WriteLine("Wakeup task cannot be created because there are no upcoming scheduled recordings.");
+                    return (int)ExitCode.AccessDeniedDuringTaskCreation;
                 }
             }
 
@@ -93,9 +89,18 @@ namespace PlexDvrWaker
         private static int RunList(ListOptions options)
         {
             SetupLogger(options);
+            if (!PlexLibraryDatabaseExists())
+            {
+                return (int)ExitCode.PlexLibraryDatabaseNotFound;
+            }
 
-            var plexDataAdapter = new Plex.DataAdapter(options.PlexDataPath);
+            var plexDataAdapter = new Plex.DataAdapter();
             plexDataAdapter.PrintScheduledRecordings();
+
+            if (options.ShowMaintenance)
+            {
+                plexDataAdapter.PrintNextMaintenanceTime();
+            }
 
             return (int)ExitCode.Success;
         }
@@ -103,9 +108,13 @@ namespace PlexDvrWaker
         private static int RunMonitor(MonitorOptions options)
         {
             SetupLogger(options);
+            if (!PlexLibraryDatabaseExists())
+            {
+                return (int)ExitCode.PlexLibraryDatabaseNotFound;
+            }
 
-            var plexDataAdapter = new Plex.DataAdapter(options.PlexDataPath);
-            var taskScheduler = new Plex.TaskScheduler(options.PlexDataPath);
+            var plexDataAdapter = new Plex.DataAdapter();
+            var taskScheduler = new Plex.TaskScheduler();
             using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value))
             {
                 libraryMonitor.Enabled = true;
@@ -135,6 +144,16 @@ namespace PlexDvrWaker
                     s.ShowHidden = true;
                 })
             ));
+        }
+
+        private static bool PlexLibraryDatabaseExists()
+        {
+            if (!File.Exists(Plex.Settings.LibraryDatabaseFileName))
+            {
+                Logger.LogError("Unable to find the Plex library database file: " + Plex.Settings.LibraryDatabaseFileName);
+                return false;
+            }
+            return true;
         }
     }
 }

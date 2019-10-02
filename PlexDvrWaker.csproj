@@ -4,12 +4,13 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <Authors>Kris Mahon</Authors>
     <Title>Plex DVR Waker</Title>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Copyright>Copyright (C) 2019 Kris Mahon</Copyright>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.111.0"/>
-    <PackageReference Include="TaskScheduler" Version="2.8.15"/>
-    <PackageReference Include="CommandLineParser" Version="2.6.0"/>
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="3.0.0" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.111.0" />
+    <PackageReference Include="TaskScheduler" Version="2.8.15" />
+    <PackageReference Include="CommandLineParser" Version="2.6.0" />
   </ItemGroup>
 </Project>

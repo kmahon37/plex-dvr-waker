@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace PlexDvrWaker.Common
 {
+    /// <summary>
+    /// Static class for logging
+    /// </summary>
     internal static class Logger
     {
         private static readonly ConsoleColor DEFAULT_FOREGROUND_COLOR = ConsoleColor.Gray;

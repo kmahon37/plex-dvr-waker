@@ -5,18 +5,18 @@ using CommandLine.Text;
 
 namespace PlexDvrWaker.CmdLine
 {
-    [Verb("add-task", HelpText = "Add/update Windows Task Scheduler tasks for waking the computer for the next scheduled recording, syncing the next wakeup, or monitoring the Plex library database for changes.")]
+    [Verb("add-task", HelpText = "Add/update Windows Task Scheduler tasks for waking the computer for the next scheduled recording or Plex maintenance time, syncing the next wakeup, or monitoring the Plex library database for changes.")]
     internal class AddTaskOptions : ProgramOptions
     {
         [Option("wakeup",
-            HelpText = "Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the computer 15 seconds before the next scheduled recording time.")]
+            HelpText = "Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the computer 15 seconds before the next scheduled recording time or Plex maintenance time.")]
         public bool Wakeup { get; set; }
 
         private int? _wakeupRefreshDelaySeconds;
         [Option("delay",
             MetaValue = "SECONDS",
             Hidden = true,
-            HelpText = "The number of seconds to wait before updating the Windows Task Scheduler 'wakeup' task.  This is used when the 'wakeup' task is triggered so that it waits until the current recording has started before updating the 'wakeup' task with the next scheduled recording time.")]
+            HelpText = "The number of seconds to wait before updating the Windows Task Scheduler 'wakeup' task.  This is used when the 'wakeup' task is triggered so that it waits until the current recording has started before updating the 'wakeup' task with the next scheduled recording time or Plex maintenance time.")]
         public int? WakeupRefreshDelaySeconds
         {
             get
@@ -34,14 +34,14 @@ namespace PlexDvrWaker.CmdLine
         }
 
         [Option("sync",
-            HelpText = "Creates or updates a Windows Task Scheduler 'sync' task to run at the specified interval and sync the 'wakeup' task with the next scheduled recording time.")]
+            HelpText = "Creates or updates a Windows Task Scheduler 'sync' task to run at the specified interval and sync the 'wakeup' task with the next scheduled recording time or Plex maintenance time.")]
         public bool Sync { get; set; }
 
         private int? _syncIntervalMinutes;
         [Option("interval",
             MetaValue = "MINUTES",
             Default = 15,
-            HelpText = "The interval to sync the 'wakeup' task with the next scheduled recording time.")]
+            HelpText = "The interval to sync the 'wakeup' task with the next scheduled recording time or Plex maintenance time.")]
         public int? SyncIntervalMinutes
         {
             get
@@ -59,7 +59,7 @@ namespace PlexDvrWaker.CmdLine
         }
 
         [Option("monitor",
-            HelpText = "Creates or updates a Windows Task Scheduler 'monitor' task to run in the background when the computer starts up that will monitor the Plex library database file for changes and update the 'wakeup' task based on the next scheduled recording time.")]
+            HelpText = "Creates or updates a Windows Task Scheduler 'monitor' task to run in the background when the computer starts up that will monitor the Plex library database file for changes and update the 'wakeup' task based on the next scheduled recording time or Plex maintenance time.")]
         public bool Monitor { get; set; }
 
         private int? _monitorDebounceSeconds;
@@ -67,7 +67,7 @@ namespace PlexDvrWaker.CmdLine
         [Option("debounce",
             MetaValue = "SECONDS",
             Default = 5,
-            HelpText = "Since the Plex library database can change multiple times within a short time, upon the first change it will wait the specified number of seconds before it updates the Task Scheduler 'wakeup' task with the next scheduled recording time.")]
+            HelpText = "Since the Plex library database can change multiple times within a short time, upon the first change it will wait the specified number of seconds before it updates the Task Scheduler 'wakeup' task with the next scheduled recording time or Plex maintenance time.")]
         public int? MonitorDebounceSeconds
         {
             get
