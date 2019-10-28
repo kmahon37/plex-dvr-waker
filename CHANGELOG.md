@@ -1,3 +1,6 @@
+## 1.1.1 (2019-10-27)
+- Fixed error when reading advanced recording information with an unexpected format from the Plex library database [#4](https://github.com/kmahon37/plex-dvr-waker/issues/4)
+
 ## 1.1.0 (2019-09-29)
 ### New Features:
 - Now reading Plex settings from the Windows Registry

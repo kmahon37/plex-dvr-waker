@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SQLite;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -198,22 +199,44 @@ namespace PlexDvrWaker.Plex
 
                         if (!_scheduledRecordings.ContainsKey(remoteId))
                         {
-                            var extraDataDict = Uri.UnescapeDataString(reader.GetString(5))
-                                .Split('&').ToDictionary(
-                                    s => s.Split('=', 1)[0],
-                                    s => s.Split('=', 2)[1]
-                                );
                             var startOffsetMinutes = 0;
                             var endOffsetMinutes = 0;
 
-                            if (extraDataDict.TryGetValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
+                            // Parse "extra_data" field for some advanced recording info.  We need to be
+                            // careful of unexpected data structures, so carefully grab what we need from it.
+                            var extraDataString = !reader.IsDBNull(5) ? reader.GetString(5) : string.Empty;
+                            if (!string.IsNullOrWhiteSpace(extraDataString))
                             {
-                                int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
-                            }
+                                var extraDataArray = Uri.UnescapeDataString(extraDataString).Split('&');
+                                if (extraDataArray.Any())
+                                {
+                                    bool tryGetExtraDataValue(string key, out string value)
+                                    {
+                                        var arrayValue = extraDataArray.FirstOrDefault(s => s.StartsWith(key + "=", true, CultureInfo.InvariantCulture));
+                                        if (!string.IsNullOrWhiteSpace(arrayValue))
+                                        {
+                                            var parts = arrayValue.Split('=', 2);
+                                            if (parts.Length == 2 && parts.All(s => !string.IsNullOrWhiteSpace(s)))
+                                            {
+                                                value = parts[1];
+                                                return true;
+                                            }
+                                        }
 
-                            if (extraDataDict.TryGetValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
-                            {
-                                int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
+                                        value = null;
+                                        return false;
+                                    }
+
+                                    if (tryGetExtraDataValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
+                                    {
+                                        int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
+                                    }
+
+                                    if (tryGetExtraDataValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
+                                    {
+                                        int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
+                                    }
+                                }
                             }
 
                             var rec = new ScheduledRecording()
@@ -282,7 +305,7 @@ namespace PlexDvrWaker.Plex
                             cmd.CommandText = sql.ToString();
                             cmd.Parameters.AddRange(
                                 _scheduledRecordings.Keys
-                                    .Select(id => new SQLiteParameter(System.Data.DbType.String, 255) { Value = id })
+                                    .Select(id => new SQLiteParameter(DbType.String, 255) { Value = id })
                                     .ToArray()
                             );
                             var reader = cmd.ExecuteReader();
