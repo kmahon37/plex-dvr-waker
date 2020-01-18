@@ -336,7 +336,7 @@ namespace PlexDvrWaker.Plex
 
                                     rec.StartTime = reader.GetDateTime(6).ToLocalTime();
                                     rec.EndTime = reader.GetDateTime(7).ToLocalTime();
-                                    rec.YearOriginallyAvailable = reader.GetInt32(8);
+                                    rec.YearOriginallyAvailable = !reader.IsDBNull(8) ? reader.GetInt32(8) : default;
 
                                     // Clean up some bad Epg data
                                     // Indicates Epg may not have full information for some reason

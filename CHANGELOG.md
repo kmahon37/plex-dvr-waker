@@ -1,3 +1,6 @@
+## 1.1.2 (2020-01-18)
+- Fixed error when loading EPG info from the Plex library database [#6](https://github.com/kmahon37/plex-dvr-waker/issues/6)
+
 ## 1.1.1 (2019-10-27)
 - Fixed error when reading advanced recording information with an unexpected format from the Plex library database [#4](https://github.com/kmahon37/plex-dvr-waker/issues/4)
 
