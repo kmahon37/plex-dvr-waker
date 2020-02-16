@@ -264,8 +264,33 @@ namespace PlexDvrWaker.Plex
             if (_scheduledRecordings.Any())
             {
                 // Get EPG database file names since it appears like there could be multiple
-                // TODO - maybe correlate this with the "media_provider_resources" table - need to better understand table first
-                var tvEpgDatabaseFileNames = Directory.GetFiles(Path.GetDirectoryName(_libraryDatabaseFileName), "tv.plex.providers.epg.cloud*.db", SearchOption.TopDirectoryOnly);
+                var databaseFilePath = Path.GetDirectoryName(_libraryDatabaseFileName);
+                var tvEpgDatabaseFileNames = new List<string>();
+                var sqlEpgProviders = new StringBuilder()
+                    .AppendLine("select")
+                    .AppendLine("  epg.identifier,")
+                    .AppendLine("  dvr.uuid")
+                    .AppendLine("from media_provider_resources as epg")
+                    .AppendLine("inner join media_provider_resources as dvr on dvr.id = epg.parent_id")
+                    .AppendLine("where epg.identifier like 'tv.plex.providers.epg.%'");
+
+                using (var conn = new SQLiteConnection($"Data Source={_libraryDatabaseFileName};Version=3;Read Only=True;"))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = sqlEpgProviders.ToString();
+                        var reader = cmd.ExecuteReader();
+
+                        while (reader.Read())
+                        {
+                            var identifier = reader.GetString(0);
+                            var uuid = reader.GetString(1);
+                            var tvEpgDatabaseFileName = Path.Combine(databaseFilePath, $"{identifier}-{uuid}.db");
+                            tvEpgDatabaseFileNames.Add(tvEpgDatabaseFileName);
+                        }
+                    }
+                }
 
                 // Get scheduled show start times from EPG
                 var sql = new StringBuilder()
@@ -426,7 +451,7 @@ namespace PlexDvrWaker.Plex
 
                         foreach (var rec in _scheduledRecordings.Values)
                         {
-                            Object result = null;
+                            Object result;
 
                             switch (rec.SubscriptionMetadataType)
                             {
