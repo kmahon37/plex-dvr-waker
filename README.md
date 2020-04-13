@@ -53,11 +53,12 @@ dotnet PlexDvrWaker.dll add-task --sync
 - [Custom Plex Installations](#cmdline-custom)
 
 ### Displaying help <a name="cmdline-help"></a>
-The main help screen displays the top-level help for the available commands.  You can also view specific detailed help for each command by using the syntax: `dotnet PlexDvrWaker.dll help <command_name>`.
+The main help screen displays the top-level help for the available commands.  You can also view specific detailed help for each command by using the syntax: `dotnet PlexDvrWaker.dll help <command_name>` or `dotnet PlexDvrWaker.dll <command_name> --help`.
 
 *Usage:*
 ```
 dotnet PlexDvrWaker.dll help [add-task|list|monitor]
+dotnet PlexDvrWaker.dll [add-task|list|monitor] --help
 ```
 
 *Example output:*
@@ -199,7 +200,7 @@ Press any key to stop monitoring
 ### Custom Plex Installations <a name="cmdline-custom"></a>
 If you have a custom Plex installation, such as if you installed Plex under a different user/service account, then you may need to specify the `--database` option when running commands.  With this option, you will need to specify the full path and file name to your database file in the custom location (ie: `--database="C:\My Custom Folder\custom2\com.plexapp.plugins.library.db"`).
 
-By default, Plex DVR Waker tries to load Plex's local application data storage path from the registry (`Computer\HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server\LocalAppDataPath`) if it exists (Note: This is controlled via an Advanced setting in Plex under "Settings > General").  Otherwise, Plex DVR Waker will fallback onto Plex's default local application data storage path (`%LOCALAPPDATA%` which usually corresponds to `C:\Users\<USER_NAME>\AppData\Local\`).  Once the storage path is identified, it then tries to find the Plex library database under that folder (`...\Plex Media Server\Plug-in Support\Databases\com.plexapp.plugins.library.db`).
+By default, Plex DVR Waker tries to load Plex's local application data storage path from the registry (`Computer\HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server\LocalAppDataPath`) if it exists (Note: This is controlled via an Advanced setting in Plex under "Settings > General").  Otherwise, Plex DVR Waker will fallback onto Plex's default local application data storage path (`%LOCALAPPDATA%` which usually corresponds to `C:\Users\<USER_NAME>\AppData\Local\`).  Once the storage path is identified, it then tries to find the Plex library database file under that folder (`...\Plex Media Server\Plug-in Support\Databases\com.plexapp.plugins.library.db`).
 
 ## Troubleshooting
 
