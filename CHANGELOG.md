@@ -1,3 +1,7 @@
+## 1.1.4 (2020-04-12)
+### New Features:
+- Added command-line option for `--database=FILE` to support for custom Plex installations. [#10](https://github.com/kmahon37/plex-dvr-waker/issues/10)
+
 ## 1.1.3 (2020-02-08)
 ### Fixed bugs:
 - Fixed loading EPG info to support xmltv providers [#8](https://github.com/kmahon37/plex-dvr-waker/issues/8)

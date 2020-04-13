@@ -1,6 +1,6 @@
 using System;
 
-namespace PlexDvrWaker.Plex
+namespace PlexDvrWaker.Plex.Contracts
 {
     internal class ScheduledRecording
     {

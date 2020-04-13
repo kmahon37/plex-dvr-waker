@@ -41,10 +41,10 @@ namespace PlexDvrWaker.Common
 
         public static void LogInformation(string message, bool showMessageToUser)
         {
-            var prefix = DateTime.Now.ToString("s");
+            var dateNow = DateTime.Now;
 
-            LogToFile($"{prefix}\t{ProcessId.ToString().PadLeft(10)}\t{message}");
-            LogToConsole($"{prefix}\t{message}", (msg) =>
+            LogToFile(message, dateNow);
+            LogToConsole($"{dateNow:s}\t{message}", (msg) =>
             {
                 if (Verbose)
                 {
@@ -62,9 +62,7 @@ namespace PlexDvrWaker.Common
 
         public static void LogError(string message)
         {
-            var prefix = DateTime.Now.ToString("s");
-
-            LogToFile($"{prefix}\t{ProcessId.ToString().PadLeft(10)}\tERROR: {message}");
+            LogToFile($"ERROR: {message}");
             LogToConsole($"ERROR: {message}", (msg) =>
             {
                 LogErrorToConsole(msg);
@@ -96,10 +94,17 @@ namespace PlexDvrWaker.Common
 
         public static void LogToFile(string message)
         {
+            LogToFile(message, null);
+        }
+
+        private static void LogToFile(string message, DateTime? dateTime = null)
+        {
+            var logFileMsg = $"{dateTime ?? DateTime.Now:s}\t{ProcessId,10}\t{message}";
+
             lock (LOG_FILE_LOCK)
             {
                 RollLogFileIfNeeded();
-                File.AppendAllLines(LogFileName, new[] { message });
+                File.AppendAllLines(LogFileName, new[] { logFileMsg });
             }
         }
 
