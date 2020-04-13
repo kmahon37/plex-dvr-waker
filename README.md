@@ -150,8 +150,8 @@ dotnet PlexDvrWaker.dll list [--maintenance] [--database=FILE] [--verbose]
   --maintenance      Prints the next Plex maintenance time to standard output.
 
   --database=FILE    (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server\Plug-in
-                     Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for custom
-                     Plex installations.
+                     Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for
+                     custom Plex installations.
 
   --verbose          Prints all messages to standard output.
 ```
