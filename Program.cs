@@ -39,10 +39,9 @@ namespace PlexDvrWaker
 
         private static int RunAddTask(AddTaskOptions options)
         {
-            SetupLogger(options);
-            if (!PlexLibraryDatabaseExists())
+            if (!TryInitializeVerb(options, out int exitCode))
             {
-                return (int)ExitCode.PlexLibraryDatabaseNotFound;
+                return exitCode;
             }
 
             var taskScheduler = new Plex.TaskScheduler();
@@ -88,10 +87,9 @@ namespace PlexDvrWaker
 
         private static int RunList(ListOptions options)
         {
-            SetupLogger(options);
-            if (!PlexLibraryDatabaseExists())
+            if (!TryInitializeVerb(options, out int exitCode))
             {
-                return (int)ExitCode.PlexLibraryDatabaseNotFound;
+                return exitCode;
             }
 
             var plexDataAdapter = new Plex.DataAdapter();
@@ -107,10 +105,9 @@ namespace PlexDvrWaker
 
         private static int RunMonitor(MonitorOptions options)
         {
-            SetupLogger(options);
-            if (!PlexLibraryDatabaseExists())
+            if (!TryInitializeVerb(options, out int exitCode))
             {
-                return (int)ExitCode.PlexLibraryDatabaseNotFound;
+                return exitCode;
             }
 
             var plexDataAdapter = new Plex.DataAdapter();
@@ -127,16 +124,31 @@ namespace PlexDvrWaker
             return (int)ExitCode.Success;
         }
 
+        private static bool TryInitializeVerb(ProgramOptions options, out int exitCode)
+        {
+            // Setup the logger first so we capture any errors
+            SetupLogger(options);
+
+            // Setup and check if the database file actually exists
+            if (!SetupPlexLibraryDatabase(options))
+            {
+                exitCode = (int)ExitCode.PlexLibraryDatabaseNotFound;
+                return false;
+            }
+
+            exitCode = (int)ExitCode.Success;
+            return true;
+        }
+
         private static void SetupLogger<T>(T options) where T : ProgramOptions
         {
+            // Configure the logger
             Logger.ProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
             Logger.Verbose = options.Verbose;
             Logger.InteractiveMonitor = (typeof(T) == typeof(MonitorOptions));
+
+            // Log the command line and arguments that started this process
             Logger.LogToFile(string.Concat(
-                DateTime.Now.ToString("s"),
-                "\t",
-                Logger.ProcessId.ToString().PadLeft(10),
-                "\t",
                 APPLICATION_ALIAS,
                 " ",
                 Parser.Default.FormatCommandLine(options, s => {
@@ -146,13 +158,24 @@ namespace PlexDvrWaker
             ));
         }
 
-        private static bool PlexLibraryDatabaseExists()
+        private static bool SetupPlexLibraryDatabase(ProgramOptions options)
         {
+            // Override the default Plex library database file name, if specified
+            if (!string.IsNullOrWhiteSpace(options.LibraryDatabaseFileName))
+            {
+                Plex.Settings.LibraryDatabaseFileName = options.LibraryDatabaseFileName;
+            }
+
+            // Make sure the database file exists
             if (!File.Exists(Plex.Settings.LibraryDatabaseFileName))
             {
                 Logger.LogError("Unable to find the Plex library database file: " + Plex.Settings.LibraryDatabaseFileName);
                 return false;
             }
+
+            // Log the database file name we are using
+            Logger.LogInformation($"Using Plex library database file:  {Plex.Settings.LibraryDatabaseFileName}");
+
             return true;
         }
     }

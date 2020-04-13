@@ -329,5 +329,9 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 
-# Excel files
-*.xlsx
+#######################################
+# Custom Exclusions
+#######################################
+
+# Directories
+PrivateFiles/

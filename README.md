@@ -17,6 +17,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 > _NOTE: It does *not* support any other Plex "advanced record options" (ie: Prefer HD, Replace lower resolution items, etc)._
 
 ## Requirements
+- Plex Media Server for Windows ([download from Plex](https://www.plex.tv/media-server-downloads/))
 - Windows 7/8/10
 - Windows Task Scheduler
 - Windows .NET Core 2.2+ Runtime ([download from Microsoft](https://dotnet.microsoft.com/download))
@@ -49,6 +50,7 @@ dotnet PlexDvrWaker.dll add-task --sync
 - [Adding a wakeup, sync, or monitor task](#cmdline-add-task)
 - [Display upcoming scheduled recordings](#cmdline-list)
 - [Monitor Plex library database (interactive mode)](#cmdline-monitor)
+- [Custom Plex Installations](#cmdline-custom)
 
 ### Displaying help <a name="cmdline-help"></a>
 The main help screen displays the top-level help for the available commands.  You can also view specific detailed help for each command by using the syntax: `dotnet PlexDvrWaker.dll help <command_name>`.
@@ -85,9 +87,9 @@ The `monitor` task will watch the Plex library database files for changes and al
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll add-task --wakeup [--verbose]
-dotnet PlexDvrWaker.dll add-task --sync [--interval=MINUTES] [--verbose]
-dotnet PlexDvrWaker.dll add-task --monitor [--debounce=SECONDS] [--verbose]
+dotnet PlexDvrWaker.dll add-task --wakeup [--database=FILE] [--verbose]
+dotnet PlexDvrWaker.dll add-task --sync [--interval=MINUTES] [--database=FILE] [--verbose]
+dotnet PlexDvrWaker.dll add-task --monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
 ```
 
 *Arguments:*
@@ -111,6 +113,10 @@ dotnet PlexDvrWaker.dll add-task --monitor [--debounce=SECONDS] [--verbose]
                         short time, upon the first change it will wait the specified number of seconds
                         before it updates the Task Scheduler 'wakeup' task with the next scheduled recording
                         time or Plex maintenance time.
+
+  --database=FILE       (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server\Plug-in
+                        Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for
+                        custom Plex installations.
 
   --verbose             Prints all messages to standard output.
 ```
@@ -136,14 +142,18 @@ You can display the upcoming scheduled recordings and Plex maintenance that is r
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll list [--maintenance] [--verbose]
+dotnet PlexDvrWaker.dll list [--maintenance] [--database=FILE] [--verbose]
 ```
 
 *Arguments:*
 ```
-  --maintenance    Prints the next Plex maintenance time to standard output.
+  --maintenance      Prints the next Plex maintenance time to standard output.
 
-  --verbose        Prints all messages to standard output.
+  --database=FILE    (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server\Plug-in
+                     Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for custom
+                     Plex installations.
+
+  --verbose          Prints all messages to standard output.
 ```
 
 *Example output (`--maintenance`):*
@@ -159,11 +169,11 @@ Next scheduled maintenance time is 9/15/2019 2:00:00 AM to 9/15/2019 3:00:00 AM
 ```
 
 ### Monitor Plex library database (interactive mode) <a name="cmdline-monitor"></a>
-You can also monitor the Plex library database for changes and automatically refresh the next wakeup time.  This is what is run hidden in the background when you run the `add-task --monitor` command.  If you want to, you can also run it in a foreground/interactive console window.  When run with the `verbose` option, this allows you to see how frequently your Plex library database is changing.  Based on the frequency, you may want to adjust the `debouce` setting accordingly.
+You can also monitor the Plex library database for changes and automatically refresh the next wakeup time.  This is what is run hidden in the background when you run the `add-task --monitor` command.  If you want to, you can also run it in a foreground/interactive console window.  When run with the `--verbose` option, this allows you to see how frequently your Plex library database is changing.  Based on the frequency, you may want to adjust the `--debouce` setting accordingly.
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--verbose]
+dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
 ```
 
 *Arguments:*
@@ -173,6 +183,10 @@ dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--verbose]
                         updates the Task Scheduler 'wakeup' task with the next scheduled recording time
                         or Plex maintenance time. (Minimum: 1 second)
 
+  --database=FILE       (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server\Plug-in
+                        Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for
+                        custom Plex installations.
+
   --verbose             Prints all messages to standard output.
 ```
 
@@ -181,6 +195,11 @@ dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--verbose]
 Started monitoring the Plex library database
 Press any key to stop monitoring
 ```
+
+### Custom Plex Installations <a name="cmdline-custom"></a>
+If you have a custom Plex installation, such as if you installed Plex under a different user/service account, then you may need to specify the `--database` option when running commands.  With this option, you will need to specify the full path and file name to your database file in the custom location (ie: `--database="C:\My Custom Folder\custom2\com.plexapp.plugins.library.db"`).
+
+By default, Plex DVR Waker tries to load Plex's local application data storage path from the registry (`Computer\HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server\LocalAppDataPath`) if it exists (Note: This is controlled via an Advanced setting in Plex under "Settings > General").  Otherwise, Plex DVR Waker will fallback onto Plex's default local application data storage path (`%LOCALAPPDATA%` which usually corresponds to `C:\Users\<USER_NAME>\AppData\Local\`).  Once the storage path is identified, it then tries to find the Plex library database under that folder (`...\Plex Media Server\Plug-in Support\Databases\com.plexapp.plugins.library.db`).
 
 ## Troubleshooting
 

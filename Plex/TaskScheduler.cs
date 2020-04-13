@@ -19,12 +19,14 @@ namespace PlexDvrWaker.Plex
 
         private readonly string _workingDirectory;
         private readonly string _dllName;
+        private readonly string _libraryDatabaseFileName;
 
         public TaskScheduler()
         {
             var fullPath = typeof(TaskScheduler).Assembly.Location;
             _workingDirectory = Path.GetDirectoryName(fullPath);
             _dllName = Path.GetFileName(fullPath);
+            _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
         }
 
         public bool CreateOrUpdateWakeUpTask(DateTime startTime)
@@ -57,17 +59,20 @@ namespace PlexDvrWaker.Plex
             {
                 Path = "dotnet.exe",
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(new AddTaskOptions
-                {
-                    // Recreate/update the wakeup task "after" the current recording has started.
-                    Wakeup = true,
-                    WakeupRefreshDelaySeconds = 30
-                },
-                settings =>
-                {
-                    settings.UseEqualToken = true;
-                    settings.ShowHidden = true;
-                })
+                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                    new AddTaskOptions
+                    {
+                        // Recreate/update the wakeup task "after" the current recording has started.
+                        Wakeup = true,
+                        WakeupRefreshDelaySeconds = 30,
+                        LibraryDatabaseFileName = _libraryDatabaseFileName
+                    },
+                    settings =>
+                    {
+                        settings.UseEqualToken = true;
+                        settings.ShowHidden = true;
+                    }
+                )
             });
 
             var successMessage = $"Wakeup task scheduled for {trigger.StartBoundary}";
@@ -103,14 +108,17 @@ namespace PlexDvrWaker.Plex
             {
                 Path = "dotnet.exe",
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(new AddTaskOptions
-                {
-                    Wakeup = true
-                },
-                settings =>
-                {
-                    settings.UseEqualToken = true;
-                })
+                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                    new AddTaskOptions
+                    {
+                        Wakeup = true,
+                        LibraryDatabaseFileName = _libraryDatabaseFileName
+                    },
+                    settings =>
+                    {
+                        settings.UseEqualToken = true;
+                    }
+                )
             });
 
             var successMessage = $"DVR sync task scheduled for every {intervalMinutes} minute{(intervalMinutes > 1 ? "s" : "")}";
@@ -152,7 +160,8 @@ namespace PlexDvrWaker.Plex
                 Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
-                        DebounceSeconds = debounceSeconds
+                        DebounceSeconds = debounceSeconds,
+                        LibraryDatabaseFileName = _libraryDatabaseFileName
                     },
                     settings =>
                     {
@@ -176,6 +185,9 @@ namespace PlexDvrWaker.Plex
 
         private bool TryCreateAdminTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
         {
+            // Stop the task first so that we can overwrite it
+            TaskService.Instance.GetTask(taskPathAndName).Stop();
+
             try
             {
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(taskPathAndName, td);

@@ -1,4 +1,5 @@
 using PlexDvrWaker.Common;
+using PlexDvrWaker.Plex.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

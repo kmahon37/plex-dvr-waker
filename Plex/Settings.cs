@@ -18,7 +18,8 @@ namespace PlexDvrWaker.Plex
         public static int ButlerEndHour { get; } = GetRegistryValue("ButlerEndHour", 5);
 
         private static string _libraryDatabaseFileName;
-        public static string LibraryDatabaseFileName {
+        public static string LibraryDatabaseFileName
+        {
             get
             {
                 if (string.IsNullOrWhiteSpace(_libraryDatabaseFileName))
@@ -34,7 +35,19 @@ namespace PlexDvrWaker.Plex
 
                 return _libraryDatabaseFileName;
             }
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(_libraryDatabaseFileName))
+                {
+                    throw new InvalidOperationException("The library database file name cannot be set after the default has already been set.");
+                }
+
+                _libraryDatabaseFileName = value;
+                LibraryDatabaseIsOverridden = true;
+            }
         }
+
+        public static bool LibraryDatabaseIsOverridden { get; private set; } = false;
 
         private static T GetRegistryValue<T>(string keyName, T defaultValue)
         {
