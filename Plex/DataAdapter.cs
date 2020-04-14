@@ -39,7 +39,7 @@ namespace PlexDvrWaker.Plex
                 if (_scheduledRecordings.Any())
                 {
                     LoadEpgInfo();
-                    RemoveUnschedulableItems();
+                    RemoveUnschedulableAndPastItems();
                     RemoveExistingTvShows();
                     RemoveExistingMovies();
                 }
@@ -48,8 +48,11 @@ namespace PlexDvrWaker.Plex
                 var msg = $"Found {count} upcoming scheduled recordings";
                 if (count > 0)
                 {
-                    var nextRecTime = GetNextScheduledRecording_Internal(_scheduledRecordings.Values).StartTimeWithOffset;
-                    msg += $" starting at {nextRecTime}";
+                    var nextRec = GetNextScheduledRecording(_scheduledRecordings.Values);
+                    if (nextRec?.StartTimeWithOffset != null)
+                    {
+                        msg += $" starting at {nextRec.StartTimeWithOffset}";
+                    }
                 }
                 Logger.LogInformation(msg);
 
@@ -60,13 +63,12 @@ namespace PlexDvrWaker.Plex
         public ScheduledRecording GetNextScheduledRecording()
         {
             var recs = GetScheduledRecordings();
-            return GetNextScheduledRecording_Internal(recs);
+            return GetNextScheduledRecording(recs);
         }
 
-        private ScheduledRecording GetNextScheduledRecording_Internal(IEnumerable<ScheduledRecording> scheduledRecordings)
+        private ScheduledRecording GetNextScheduledRecording(IEnumerable<ScheduledRecording> scheduledRecordings)
         {
             return scheduledRecordings
-                .Where(r => r.StartTimeWithOffset >= DateTime.Now)
                 .OrderBy(r => r.StartTimeWithOffset)
                 .FirstOrDefault();
         }
@@ -384,15 +386,15 @@ namespace PlexDvrWaker.Plex
             }
         }
 
-        private void RemoveUnschedulableItems()
+        private void RemoveUnschedulableAndPastItems()
         {
-            Logger.LogInformation("  Removing unschedulable items");
+            Logger.LogInformation("  Removing unschedulable and past items");
 
             if (_scheduledRecordings.Any())
             {
-                // Remove items that don't have a start time
+                // Remove items that don't have a start time, or that start in the past
                 var idsToRemove = _scheduledRecordings.Values
-                    .Where(rec => !rec.StartTime.HasValue)
+                    .Where(rec => !rec.StartTimeWithOffset.HasValue || rec.StartTimeWithOffset < DateTime.Now)
                     .Select(rec => rec.RemoteId);
 
                 RemoveScheduledRecordings(idsToRemove);

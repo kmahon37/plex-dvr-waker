@@ -1,6 +1,10 @@
+## 1.1.5 (2020-04-13)
+### Fixed bugs:
+- Fixed application crash when all scheduled recordings have a start time in the past [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
+
 ## 1.1.4 (2020-04-12)
 ### New Features:
-- Added command-line option for `--database=FILE` to support for custom Plex installations. [#10](https://github.com/kmahon37/plex-dvr-waker/issues/10)
+- Added command-line option for `--database=FILE` to support for custom Plex installations [#10](https://github.com/kmahon37/plex-dvr-waker/issues/10)
 
 ## 1.1.3 (2020-02-08)
 ### Fixed bugs:
