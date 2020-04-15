@@ -1,3 +1,7 @@
+## 1.1.6 (2020-04-14)
+### Fixed bugs:
+- Fixed `NullReferenceException` application crash that was introduced in v1.1.5 when running any of the `add-task` commands [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
+
 ## 1.1.5 (2020-04-13)
 ### Fixed bugs:
 - Fixed application crash when all scheduled recordings have a start time in the past [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
