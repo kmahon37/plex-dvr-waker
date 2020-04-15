@@ -186,7 +186,11 @@ namespace PlexDvrWaker.Plex
         private bool TryCreateAdminTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
         {
             // Stop the task first so that we can overwrite it
-            TaskService.Instance.GetTask(taskPathAndName).Stop();
+            var task = TaskService.Instance.GetTask(taskPathAndName);
+            if (task != null)
+            {
+                task.Stop();
+            }
 
             try
             {
