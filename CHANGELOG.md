@@ -1,3 +1,7 @@
+## 1.1.7 (2020-04-15)
+### Fixed bugs:
+- Fixed issue when running on Win7 and the Windows Task Scheduler cannot find the dotnet.exe [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
+
 ## 1.1.6 (2020-04-14)
 ### Fixed bugs:
 - Fixed `NullReferenceException` application crash that was introduced in v1.1.5 when running any of the `add-task` commands [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
