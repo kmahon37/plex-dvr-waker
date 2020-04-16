@@ -16,17 +16,22 @@ namespace PlexDvrWaker.Plex
         private const string TASK_NAME_DVR_WAKE = TASK_SCHEDULER_FOLDER + "\\DVR wake";
         private const string TASK_NAME_DVR_SYNC = TASK_SCHEDULER_FOLDER + "\\DVR sync";
         private const string TASK_NAME_DVR_MONITOR = TASK_SCHEDULER_FOLDER + "\\DVR monitor";
+        private const string CMD_LINE_EXE = "cmd.exe";
 
         private readonly string _workingDirectory;
-        private readonly string _dllName;
+        private readonly string _cmdLineArgsPrefix;
         private readonly string _libraryDatabaseFileName;
 
         public TaskScheduler()
         {
             var fullPath = typeof(TaskScheduler).Assembly.Location;
             _workingDirectory = Path.GetDirectoryName(fullPath);
-            _dllName = Path.GetFileName(fullPath);
             _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
+
+            // Win7 Task Scheduler cannot find dotnet.exe by itself even though it's in the PATH environment variable,
+            // but running as "cmd.exe /k start dotnet.exe ..." seems to work on Win7/10.
+            var dllName = Path.GetFileName(fullPath);
+            _cmdLineArgsPrefix = "/k start dotnet.exe " + dllName + " ";
         }
 
         public bool CreateOrUpdateWakeUpTask(DateTime startTime)
@@ -57,9 +62,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = "dotnet.exe",
+                Path = CMD_LINE_EXE,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                Arguments = _cmdLineArgsPrefix + Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
                         // Recreate/update the wakeup task "after" the current recording has started.
@@ -106,9 +111,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = "dotnet.exe",
+                Path = CMD_LINE_EXE,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                Arguments = _cmdLineArgsPrefix + Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
                         Wakeup = true,
@@ -155,9 +160,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = "dotnet.exe",
+                Path = CMD_LINE_EXE,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                Arguments = _cmdLineArgsPrefix + Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
                         DebounceSeconds = debounceSeconds,
