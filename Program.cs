@@ -15,7 +15,8 @@ namespace PlexDvrWaker
             Success = 0,
             ArgumentParseError = 1,
             AccessDeniedDuringTaskCreation = 2,
-            PlexLibraryDatabaseNotFound = 3
+            PlexLibraryDatabaseNotFound = 3,
+            DotNetExeNotFound = 4
         }
 
         internal const string APPLICATION_ALIAS = "dotnet PlexDvrWaker.dll";
@@ -45,6 +46,10 @@ namespace PlexDvrWaker
             }
 
             var taskScheduler = new Plex.TaskScheduler();
+            if (!taskScheduler.FindDotNetExeLocation())
+            {
+                return (int)ExitCode.DotNetExeNotFound;
+            }
 
             if (options.Wakeup)
             {
@@ -112,6 +117,11 @@ namespace PlexDvrWaker
 
             var plexDataAdapter = new Plex.DataAdapter();
             var taskScheduler = new Plex.TaskScheduler();
+            if (!taskScheduler.FindDotNetExeLocation())
+            {
+                return (int)ExitCode.DotNetExeNotFound;
+            }
+
             using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value))
             {
                 libraryMonitor.Enabled = true;
@@ -140,14 +150,15 @@ namespace PlexDvrWaker
             return true;
         }
 
-        private static void SetupLogger<T>(T options) where T : ProgramOptions
+        private static void SetupLogger(ProgramOptions options)
         {
             // Configure the logger
             Logger.ProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
             Logger.Verbose = options.Verbose;
-            Logger.InteractiveMonitor = (typeof(T) == typeof(MonitorOptions));
+            Logger.InteractiveMonitor = options.GetType() == typeof(MonitorOptions);
 
             // Log the command line and arguments that started this process
+            Logger.LogToFile("--------------------------------------------------------------");
             Logger.LogToFile(string.Concat(
                 APPLICATION_ALIAS,
                 " ",

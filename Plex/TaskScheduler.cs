@@ -16,22 +16,50 @@ namespace PlexDvrWaker.Plex
         private const string TASK_NAME_DVR_WAKE = TASK_SCHEDULER_FOLDER + "\\DVR wake";
         private const string TASK_NAME_DVR_SYNC = TASK_SCHEDULER_FOLDER + "\\DVR sync";
         private const string TASK_NAME_DVR_MONITOR = TASK_SCHEDULER_FOLDER + "\\DVR monitor";
-        private const string CMD_LINE_EXE = "cmd.exe";
 
+        private string _dotNetExeFullPath;
         private readonly string _workingDirectory;
-        private readonly string _cmdLineArgsPrefix;
+        private readonly string _dllName;
         private readonly string _libraryDatabaseFileName;
 
         public TaskScheduler()
         {
             var fullPath = typeof(TaskScheduler).Assembly.Location;
             _workingDirectory = Path.GetDirectoryName(fullPath);
+            _dllName = Path.GetFileName(fullPath);
             _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
+        }
 
-            // Win7 Task Scheduler cannot find dotnet.exe by itself even though it's in the PATH environment variable,
-            // but running as "cmd.exe /k start dotnet.exe ..." seems to work on Win7/10.
-            var dllName = Path.GetFileName(fullPath);
-            _cmdLineArgsPrefix = "/k start dotnet.exe " + dllName + " ";
+        public bool FindDotNetExeLocation()
+        {
+            // Check the default location
+            var defaultPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "dotnet", "dotnet.exe");
+            if (File.Exists(defaultPath))
+            {
+                Logger.LogInformation($"Found dotnet.exe at: {defaultPath}");
+                _dotNetExeFullPath = $"\"{defaultPath}\"";
+                return true;
+            }
+
+            // Check the PATH environment variable locations
+            var pathEnvVar = Environment.GetEnvironmentVariable("PATH");
+            if (!string.IsNullOrWhiteSpace(pathEnvVar))
+            {
+                var paths = pathEnvVar.Split(Path.PathSeparator);
+                foreach (var path in paths)
+                {
+                    var fullPath = Path.Combine(path, "dotnet.exe");
+                    if (File.Exists(fullPath))
+                    {
+                        Logger.LogInformation($"Found dotnet.exe at: {fullPath}");
+                        _dotNetExeFullPath = $"\"{fullPath}\"";
+                        return true;
+                    }
+                }
+            }
+
+            Logger.LogError($"Unable to find dotnet.exe at \"{defaultPath}\" or in the PATH environment variable.");
+            return false;
         }
 
         public bool CreateOrUpdateWakeUpTask(DateTime startTime)
@@ -41,6 +69,8 @@ namespace PlexDvrWaker.Plex
 
         internal bool CreateOrUpdateWakeUpTask(DateTime startTime, bool showMessageToUser)
         {
+            VerifyDotNetExeWasLocated();
+
             Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
             var td = TaskService.Instance.NewTask();
@@ -62,9 +92,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = CMD_LINE_EXE,
+                Path = _dotNetExeFullPath,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _cmdLineArgsPrefix + Parser.Default.FormatCommandLine(
+                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
                         // Recreate/update the wakeup task "after" the current recording has started.
@@ -91,6 +121,8 @@ namespace PlexDvrWaker.Plex
 
         public bool CreateOrUpdateDVRSyncTask(int intervalMinutes)
         {
+            VerifyDotNetExeWasLocated();
+
             Logger.LogInformation($"Creating/updating DVR sync task: {TASK_NAME_DVR_SYNC}");
 
             var td = TaskService.Instance.NewTask();
@@ -111,9 +143,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = CMD_LINE_EXE,
+                Path = _dotNetExeFullPath,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _cmdLineArgsPrefix + Parser.Default.FormatCommandLine(
+                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
                         Wakeup = true,
@@ -137,6 +169,8 @@ namespace PlexDvrWaker.Plex
 
         public bool CreateOrUpdateDVRMonitorTask(int debounceSeconds)
         {
+            VerifyDotNetExeWasLocated();
+
             Logger.LogInformation($"Creating/updating DVR monitor task: {TASK_NAME_DVR_MONITOR}");
 
             var td = TaskService.Instance.NewTask();
@@ -160,9 +194,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = CMD_LINE_EXE,
+                Path = _dotNetExeFullPath,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _cmdLineArgsPrefix + Parser.Default.FormatCommandLine(
+                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
                         DebounceSeconds = debounceSeconds,
@@ -209,6 +243,14 @@ namespace PlexDvrWaker.Plex
             }
 
             return true;
+        }
+
+        private void VerifyDotNetExeWasLocated()
+        {
+            if (string.IsNullOrWhiteSpace(_dotNetExeFullPath))
+            {
+                throw new InvalidOperationException("dotnet.exe must be located before calling this method.");
+            }
         }
     }
 }
