@@ -1,6 +1,11 @@
-## 1.1.7 (2020-04-15)
+## 1.1.8 (2020-04-19)
 ### Fixed bugs:
-- Fixed issue when running on Win7 and the Windows Task Scheduler cannot find the dotnet.exe [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
+- Fixed issue when Windows Task Scheduler cannot automatically find `dotnet.exe` on some systems like Windows 7 (and maybe others).  It will now check for `dotnet.exe` at the default install location of `%ProgramFiles%\dotnet\dotnet.exe`, and if not found then it will also check all locations in the `PATH` environment variable.  If `dotnet.exe` cannot be found, it will error out when running one of the `add-task` commands. [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
+
+## 1.1.7 (2020-04-15)
+UPDATE: (2020-04-19) This fix did not work as expected and the release has been removed.
+### Fixed bugs:
+- Fixed issue when running on Win7 and the Windows Task Scheduler cannot find the `dotnet.exe` [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)
 
 ## 1.1.6 (2020-04-14)
 ### Fixed bugs:

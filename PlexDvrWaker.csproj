@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <Authors>Kris Mahon</Authors>
     <Title>Plex DVR Waker</Title>
-    <Version>1.1.7</Version>
+    <Version>1.1.8</Version>
     <Copyright>Copyright (C) 2020 Kris Mahon</Copyright>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
