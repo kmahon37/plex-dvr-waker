@@ -16,7 +16,8 @@ namespace PlexDvrWaker
             ArgumentParseError = 1,
             AccessDeniedDuringTaskCreation = 2,
             PlexLibraryDatabaseNotFound = 3,
-            DotNetExeNotFound = 4
+            DotNetExeNotFound = 4,
+            Unknown = 5
         }
 
         internal const string APPLICATION_ALIAS = "dotnet PlexDvrWaker.dll";
@@ -31,20 +32,45 @@ namespace PlexDvrWaker
 
             return Parser.Default.ParseArguments<AddTaskOptions, ListOptions, MonitorOptions, ProgramOptions>(args)
                 .MapResult(
-                    (AddTaskOptions opts) => RunAddTask(opts),
-                    (ListOptions opts) => RunList(opts),
-                    (MonitorOptions opts) => RunMonitor(opts),
+                    (AddTaskOptions opts) => RunVerb(opts, RunAddTask),
+                    (ListOptions opts) => RunVerb(opts, RunList),
+                    (MonitorOptions opts) => RunVerb(opts, RunMonitor),
                     errs => (int)ExitCode.ArgumentParseError
                 );
         }
 
-        private static int RunAddTask(AddTaskOptions options)
+        private static int RunVerb<T>(T options, Func<T, int> verbFunc) where T: ProgramOptions
         {
-            if (!TryInitializeVerb(options, out int exitCode))
+            int exitCode = (int)ExitCode.Unknown;
+
+            try
             {
-                return exitCode;
+                if (!TryInitializeVerb(options, out exitCode))
+                {
+                    return exitCode;
+                }
+
+                exitCode = verbFunc(options);
+            }
+            catch (Exception ex)
+            {
+                // Global error handler
+                Logger.InteractiveMonitor = false;
+                Logger.LogError(ex.ToString());
+                exitCode = (int)ExitCode.Unknown;
+            }
+            finally
+            {
+                Logger.InteractiveMonitor = false;
+                var exitCodeName = Enum.GetName(typeof(ExitCode), exitCode);
+                Logger.LogInformation($"Exit code: {exitCode} ({exitCodeName ?? "???"})");
             }
 
+            return exitCode;
+        }
+
+        private static int RunAddTask(AddTaskOptions options)
+        {
             var taskScheduler = new Plex.TaskScheduler();
             if (!taskScheduler.FindDotNetExeLocation())
             {
@@ -92,16 +118,15 @@ namespace PlexDvrWaker
 
         private static int RunList(ListOptions options)
         {
-            if (!TryInitializeVerb(options, out int exitCode))
-            {
-                return exitCode;
-            }
-
             var plexDataAdapter = new Plex.DataAdapter();
             plexDataAdapter.PrintScheduledRecordings();
 
             if (options.ShowMaintenance)
             {
+                if (!options.Verbose)
+                {
+                    Console.WriteLine();
+                }
                 plexDataAdapter.PrintNextMaintenanceTime();
             }
 
@@ -110,11 +135,6 @@ namespace PlexDvrWaker
 
         private static int RunMonitor(MonitorOptions options)
         {
-            if (!TryInitializeVerb(options, out int exitCode))
-            {
-                return exitCode;
-            }
-
             var plexDataAdapter = new Plex.DataAdapter();
             var taskScheduler = new Plex.TaskScheduler();
             if (!taskScheduler.FindDotNetExeLocation())
@@ -128,6 +148,10 @@ namespace PlexDvrWaker
 
                 Console.WriteLine("Started monitoring the Plex library database");
                 Console.WriteLine(Plex.LibraryMonitor.PRESS_ANY_KEY_TO_STOP);
+
+                Logger.InteractiveMonitor = !options.NonInteractive;
+                Logger.LogToFile($"InteractiveMonitor: {Logger.InteractiveMonitor}");
+
                 Console.ReadKey(true);
             }
 
@@ -155,7 +179,6 @@ namespace PlexDvrWaker
             // Configure the logger
             Logger.ProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
             Logger.Verbose = options.Verbose;
-            Logger.InteractiveMonitor = options.GetType() == typeof(MonitorOptions);
 
             // Log the command line and arguments that started this process
             Logger.LogToFile("--------------------------------------------------------------");
