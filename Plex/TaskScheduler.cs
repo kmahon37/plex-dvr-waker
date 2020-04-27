@@ -100,7 +100,8 @@ namespace PlexDvrWaker.Plex
                         // Recreate/update the wakeup task "after" the current recording has started.
                         Wakeup = true,
                         WakeupRefreshDelaySeconds = 30,
-                        LibraryDatabaseFileName = _libraryDatabaseFileName
+                        LibraryDatabaseFileName = _libraryDatabaseFileName,
+                        TaskName = TASK_NAME_DVR_WAKE
                     },
                     settings =>
                     {
@@ -149,11 +150,13 @@ namespace PlexDvrWaker.Plex
                     new AddTaskOptions
                     {
                         Wakeup = true,
-                        LibraryDatabaseFileName = _libraryDatabaseFileName
+                        LibraryDatabaseFileName = _libraryDatabaseFileName,
+                        TaskName = TASK_NAME_DVR_SYNC
                     },
                     settings =>
                     {
                         settings.UseEqualToken = true;
+                        settings.ShowHidden = true;
                     }
                 )
             });
@@ -200,11 +203,14 @@ namespace PlexDvrWaker.Plex
                     new MonitorOptions
                     {
                         DebounceSeconds = debounceSeconds,
-                        LibraryDatabaseFileName = _libraryDatabaseFileName
+                        NonInteractive = true,
+                        LibraryDatabaseFileName = _libraryDatabaseFileName,
+                        TaskName = TASK_NAME_DVR_MONITOR
                     },
                     settings =>
                     {
                         settings.UseEqualToken = true;
+                        settings.ShowHidden = true;
                     }
                 )
             });
@@ -226,13 +232,15 @@ namespace PlexDvrWaker.Plex
         {
             // Stop the task first so that we can overwrite it
             var task = TaskService.Instance.GetTask(taskPathAndName);
-            if (task != null)
+            if (task != null && task.State == TaskState.Running)
             {
+                Logger.LogInformation($"  Stopping the currently running task so that it can be updated");
                 task.Stop();
             }
 
             try
             {
+                Logger.LogInformation("  Creating/updating the task");
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(taskPathAndName, td);
                 Logger.LogInformation(successMessage, showMessageToUser);
             }

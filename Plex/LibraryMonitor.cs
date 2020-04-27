@@ -18,6 +18,8 @@ namespace PlexDvrWaker.Plex
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;
         private readonly Object _libraryChangedLock = new Object();
         private DateTime? _libraryChangedDate;
+        private DateTime? _startDate;
+        private ulong _numTimesTriggered;
 
         public LibraryMonitor(DataAdapter plexAdapter, TaskScheduler taskScheduler, int debounceSeconds)
         {
@@ -44,6 +46,8 @@ namespace PlexDvrWaker.Plex
             set
             {
                 _libraryDatabaseFileWatcher.EnableRaisingEvents = value;
+                _startDate = value ? DateTime.Now : (DateTime?)null;
+                _numTimesTriggered = 0;
             }
         }
 
@@ -58,8 +62,12 @@ namespace PlexDvrWaker.Plex
                     {
                         //Bundle changes so we're not running this a ton
                         _libraryChangedDate = DateTime.Now;
+                        _numTimesTriggered += 1;
 
-                        Logger.LogInformation($"Plex library changed: {e.Name}");
+                        Logger.LogInformation("--------------------------------------------------------------");
+                        Logger.LogInformation($"Monitor detected a Plex library file changed: {e.Name}");
+                        Logger.LogInformation($"Monitor start date: {_startDate.Value:s} ({new TimeSpan((_libraryChangedDate.Value - _startDate.Value).Ticks)})");
+                        Logger.LogInformation($"Monitor triggered: {_numTimesTriggered} time{(_numTimesTriggered > 1 ? "s" : "")}");
                         if (_bundledChangesTimeSpan.TotalSeconds > 0)
                         {
                             Logger.LogInformation($"Bundling changes, waiting {_bundledChangesTimeSpan.TotalSeconds} second{(_bundledChangesTimeSpan.TotalSeconds > 1 ? "s" : "")} until next refresh");

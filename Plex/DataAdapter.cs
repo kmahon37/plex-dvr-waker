@@ -157,8 +157,6 @@ namespace PlexDvrWaker.Plex
             {
                 Console.WriteLine("No upcoming scheduled recordings.");
             }
-
-            Console.WriteLine();
         }
 
         public void PrintNextMaintenanceTime()
@@ -167,7 +165,6 @@ namespace PlexDvrWaker.Plex
 
             Console.WriteLine($"Plex maintenance is {scheduledMaintenance.StartHourString} to {scheduledMaintenance.EndHourString} every day");
             Console.WriteLine($"Next scheduled maintenance time is {scheduledMaintenance.StartTime} to {scheduledMaintenance.EndTime}");
-            Console.WriteLine();
         }
 
         private void LoadSubscriptions()
