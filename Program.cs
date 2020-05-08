@@ -4,6 +4,7 @@ using PlexDvrWaker.Common;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace PlexDvrWaker
@@ -16,11 +17,10 @@ namespace PlexDvrWaker
             ArgumentParseError = 1,
             AccessDeniedDuringTaskCreation = 2,
             PlexLibraryDatabaseNotFound = 3,
-            DotNetExeNotFound = 4,
-            Unknown = 5
+            Unknown = 99
         }
 
-        internal const string APPLICATION_ALIAS = "dotnet PlexDvrWaker.dll";
+        internal const string EXE_NAME = "PlexDvrWaker.exe";
 
         public static int Main(string[] args)
         {
@@ -72,10 +72,6 @@ namespace PlexDvrWaker
         private static int RunAddTask(AddTaskOptions options)
         {
             var taskScheduler = new Plex.TaskScheduler();
-            if (!taskScheduler.FindDotNetExeLocation())
-            {
-                return (int)ExitCode.DotNetExeNotFound;
-            }
 
             if (options.Wakeup)
             {
@@ -137,10 +133,6 @@ namespace PlexDvrWaker
         {
             var plexDataAdapter = new Plex.DataAdapter();
             var taskScheduler = new Plex.TaskScheduler();
-            if (!taskScheduler.FindDotNetExeLocation())
-            {
-                return (int)ExitCode.DotNetExeNotFound;
-            }
 
             using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value))
             {
@@ -183,13 +175,18 @@ namespace PlexDvrWaker
             // Log the command line and arguments that started this process
             Logger.LogToFile("--------------------------------------------------------------");
             Logger.LogToFile(string.Concat(
-                APPLICATION_ALIAS,
+                EXE_NAME,
                 " ",
-                Parser.Default.FormatCommandLine(options, s => {
-                    s.UseEqualToken = true;
-                    s.ShowHidden = true;
-                })
+                Parser.Default.FormatCommandLine(options, ConfigureUnParserSettings)
             ));
+            Logger.LogToFile("Version: " + Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion);
+        }
+
+        public static void ConfigureUnParserSettings(UnParserSettings settings)
+        {
+            settings.UseEqualToken = true;
+            settings.ShowHidden = true;
+            settings.SkipDefault = true;
         }
 
         private static bool SetupPlexLibraryDatabase(ProgramOptions options)

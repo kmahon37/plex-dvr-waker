@@ -1,3 +1,7 @@
+## 2.0.0 (????)
+### Other:
+- Upgraded to use .NET Core 3.1
+
 ## 1.1.9 (2020-04-26)
 ### Fixed bugs:
 - Fixed issue caused in v1.1.8 with running the `monitor` task in Windows Task Scheduler where the task would quit with an error code of 0xE0434352. [#13](https://github.com/kmahon37/plex-dvr-waker/issues/13)

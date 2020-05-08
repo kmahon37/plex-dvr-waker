@@ -35,7 +35,7 @@ namespace PlexDvrWaker.CmdLine
             HelpText = "Determines whether to run the monitor in non-interactive mode when running from the Windows Task Scheduler.")]
         public bool NonInteractive { get; set; }
 
-        [Usage(ApplicationAlias = Program.APPLICATION_ALIAS)]
+        [Usage(ApplicationAlias = Program.EXE_NAME)]
         public static IEnumerable<Example> Examples
         {
             get

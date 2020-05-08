@@ -17,49 +17,14 @@ namespace PlexDvrWaker.Plex
         private const string TASK_NAME_DVR_SYNC = TASK_SCHEDULER_FOLDER + "\\DVR sync";
         private const string TASK_NAME_DVR_MONITOR = TASK_SCHEDULER_FOLDER + "\\DVR monitor";
 
-        private string _dotNetExeFullPath;
         private readonly string _workingDirectory;
-        private readonly string _dllName;
         private readonly string _libraryDatabaseFileName;
 
         public TaskScheduler()
         {
             var fullPath = typeof(TaskScheduler).Assembly.Location;
             _workingDirectory = Path.GetDirectoryName(fullPath);
-            _dllName = Path.GetFileName(fullPath);
             _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
-        }
-
-        public bool FindDotNetExeLocation()
-        {
-            // Check the default location
-            var defaultPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "dotnet", "dotnet.exe");
-            if (File.Exists(defaultPath))
-            {
-                Logger.LogInformation($"Found dotnet.exe at: {defaultPath}");
-                _dotNetExeFullPath = $"\"{defaultPath}\"";
-                return true;
-            }
-
-            // Check the PATH environment variable locations
-            var pathEnvVar = Environment.GetEnvironmentVariable("PATH");
-            if (!string.IsNullOrWhiteSpace(pathEnvVar))
-            {
-                var paths = pathEnvVar.Split(Path.PathSeparator);
-                foreach (var path in paths)
-                {
-                    var fullPath = Path.Combine(path, "dotnet.exe");
-                    if (File.Exists(fullPath))
-                    {
-                        Logger.LogInformation($"Found dotnet.exe at: {fullPath}");
-                        _dotNetExeFullPath = $"\"{fullPath}\"";
-                        return true;
-                    }
-                }
-            }
-
-            Logger.LogError($"Unable to find dotnet.exe at \"{defaultPath}\" or in the PATH environment variable.");
-            return false;
         }
 
         public bool CreateOrUpdateWakeUpTask(DateTime startTime)
@@ -69,8 +34,6 @@ namespace PlexDvrWaker.Plex
 
         internal bool CreateOrUpdateWakeUpTask(DateTime startTime, bool showMessageToUser)
         {
-            VerifyDotNetExeWasLocated();
-
             Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
             var td = TaskService.Instance.NewTask();
@@ -92,9 +55,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = _dotNetExeFullPath,
+                Path = Program.EXE_NAME,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                Arguments = Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
                         // Recreate/update the wakeup task "after" the current recording has started.
@@ -103,11 +66,7 @@ namespace PlexDvrWaker.Plex
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_WAKE
                     },
-                    settings =>
-                    {
-                        settings.UseEqualToken = true;
-                        settings.ShowHidden = true;
-                    }
+                    Program.ConfigureUnParserSettings
                 )
             });
 
@@ -122,8 +81,6 @@ namespace PlexDvrWaker.Plex
 
         public bool CreateOrUpdateDVRSyncTask(int intervalMinutes)
         {
-            VerifyDotNetExeWasLocated();
-
             Logger.LogInformation($"Creating/updating DVR sync task: {TASK_NAME_DVR_SYNC}");
 
             var td = TaskService.Instance.NewTask();
@@ -144,20 +101,16 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = _dotNetExeFullPath,
+                Path = Program.EXE_NAME,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                Arguments = Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
                         Wakeup = true,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_SYNC
                     },
-                    settings =>
-                    {
-                        settings.UseEqualToken = true;
-                        settings.ShowHidden = true;
-                    }
+                    Program.ConfigureUnParserSettings
                 )
             });
 
@@ -172,8 +125,6 @@ namespace PlexDvrWaker.Plex
 
         public bool CreateOrUpdateDVRMonitorTask(int debounceSeconds)
         {
-            VerifyDotNetExeWasLocated();
-
             Logger.LogInformation($"Creating/updating DVR monitor task: {TASK_NAME_DVR_MONITOR}");
 
             var td = TaskService.Instance.NewTask();
@@ -197,9 +148,9 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = _dotNetExeFullPath,
+                Path = Program.EXE_NAME,
                 WorkingDirectory = _workingDirectory,
-                Arguments = _dllName + " " + Parser.Default.FormatCommandLine(
+                Arguments = Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
                         DebounceSeconds = debounceSeconds,
@@ -207,11 +158,7 @@ namespace PlexDvrWaker.Plex
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_MONITOR
                     },
-                    settings =>
-                    {
-                        settings.UseEqualToken = true;
-                        settings.ShowHidden = true;
-                    }
+                    Program.ConfigureUnParserSettings
                 )
             });
 
@@ -228,7 +175,7 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
-        private bool TryCreateAdminTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
+        private static bool TryCreateAdminTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
         {
             // Stop the task first so that we can overwrite it
             var task = TaskService.Instance.GetTask(taskPathAndName);
@@ -251,14 +198,6 @@ namespace PlexDvrWaker.Plex
             }
 
             return true;
-        }
-
-        private void VerifyDotNetExeWasLocated()
-        {
-            if (string.IsNullOrWhiteSpace(_dotNetExeFullPath))
-            {
-                throw new InvalidOperationException("dotnet.exe must be located before calling this method.");
-            }
         }
     }
 }

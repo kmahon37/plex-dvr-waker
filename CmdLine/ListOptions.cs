@@ -11,7 +11,7 @@ namespace PlexDvrWaker.CmdLine
             HelpText = "Prints the next Plex maintenance time to standard output.")]
         public bool ShowMaintenance { get; set; }
 
-        [Usage(ApplicationAlias = Program.APPLICATION_ALIAS)]
+        [Usage(ApplicationAlias = Program.EXE_NAME)]
         public static IEnumerable<Example> Examples
         {
             get

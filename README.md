@@ -20,20 +20,19 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 - Plex Media Server for Windows ([download from Plex](https://www.plex.tv/media-server-downloads/))
 - Windows 7/8/10
 - Windows Task Scheduler
-- Windows .NET Core 2.2 Runtime ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/2.2))
+- Windows .NET Core 3.1 Runtime ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1))
   - You only need the "Runtime" (not the "SDK") installer.
-  - After installation, the `dotnet.exe` must be in either `%ProgramFiles%\dotnet\dotnet.exe` (this is the default install location) or in a location defined in your `PATH` environment variable.
 - "Run as administrator" rights
   - Administrator rights are needed in order to create the sync and monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation.
 
 ## Installation
-1. Download and install the Windows .NET Core 2.2 Runtime
-    - [Download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/2.2)
+1. Download and install the Windows .NET Core 3.1 Runtime
+    - [Download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1)
     - You only need the "Runtime" (not the "SDK") installer.
 2. Download the latest version of Plex DVR Waker
     - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/releases/latest)
     - Upgrading to a newer version?
-      - If you are using the `monitor` task, then you must first stop it before you can delete/overwrite the `PlexDvrWaker.dll` file.
+      - If you are using the `monitor` task, then you must first stop it before you can delete/overwrite the `PlexDvrWaker.exe` file.
         1. Open the Windows Task Scheduler.
         2. Go to the "Plex DVR Waker" folder.
         3. Right-click on the "DVR monitor" task, and click "End".
@@ -42,7 +41,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 ## Quick Start
 If you want a quick way to get started, simply run the following `sync` command from an "Administrator" Command Prompt.  It will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes and create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording or Plex maintenance time.
 ```
-dotnet PlexDvrWaker.dll add-task --sync
+PlexDvrWaker.exe add-task --sync
 ```
 
 ## Command-line Arguments
@@ -54,12 +53,12 @@ dotnet PlexDvrWaker.dll add-task --sync
 - [Custom Plex Installations](#cmdline-custom)
 
 ### Displaying help <a name="cmdline-help"></a>
-The main help screen displays the top-level help for the available commands.  You can also view specific detailed help for each command by using the syntax: `dotnet PlexDvrWaker.dll help <command_name>` or `dotnet PlexDvrWaker.dll <command_name> --help`.
+The main help screen displays the top-level help for the available commands.  You can also view specific detailed help for each command by using the syntax: `PlexDvrWaker.exe help <command_name>` or `PlexDvrWaker.exe <command_name> --help`.
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll help [add-task|list|monitor]
-dotnet PlexDvrWaker.dll [add-task|list|monitor] --help
+PlexDvrWaker.exe help [add-task|list|monitor]
+PlexDvrWaker.exe [add-task|list|monitor] --help
 ```
 
 *Example output:*
@@ -89,9 +88,9 @@ The `monitor` task will watch the Plex library database files for changes and al
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll add-task --wakeup [--database=FILE] [--verbose]
-dotnet PlexDvrWaker.dll add-task --sync [--interval=MINUTES] [--database=FILE] [--verbose]
-dotnet PlexDvrWaker.dll add-task --monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --wakeup [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --sync [--interval=MINUTES] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
 ```
 
 *Arguments:*
@@ -144,7 +143,7 @@ You can display the upcoming scheduled recordings and Plex maintenance that is r
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll list [--maintenance] [--database=FILE] [--verbose]
+PlexDvrWaker.exe list [--maintenance] [--database=FILE] [--verbose]
 ```
 
 *Arguments:*
@@ -175,7 +174,7 @@ You can also monitor the Plex library database for changes and automatically ref
 
 *Usage:*
 ```
-dotnet PlexDvrWaker.dll monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
 ```
 
 *Arguments:*

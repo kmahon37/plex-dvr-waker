@@ -126,11 +126,11 @@ namespace PlexDvrWaker.Plex
             {
                 var startDateColLength = recs.Max(r => r.StartTimeWithOffset.ToString().Length);
                 var endDateColLength = recs.Max(r => r.EndTimeWithOffset.ToString().Length);
-                string getDateColHeader(string headerName, int dateColLength)
+                static string getDateColHeader(string headerName, int dateColLength)
                 {
                     return headerName + new string(' ', dateColLength - headerName.Length);
                 }
-                string getHeaderDivider(int length)
+                static string getHeaderDivider(int length)
                 {
                     return new string('-', length);
                 }
