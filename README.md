@@ -20,15 +20,15 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 - Plex Media Server for Windows ([download from Plex](https://www.plex.tv/media-server-downloads/))
 - Windows 7/8/10
 - Windows Task Scheduler
-- Windows .NET Core 3.1 Runtime ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1))
-  - You only need the "Runtime" (not the "SDK") installer.
+- Windows .NET Core Runtime 3.1 ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1))
+  - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
 - "Run as administrator" rights
-  - Administrator rights are needed in order to create the sync and monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation.
+  - Administrator rights are needed in order to create the sync and/or monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation for console applications.
 
 ## Installation
-1. Download and install the Windows .NET Core 3.1 Runtime
+1. Download and install the latest Windows .NET Core Runtime 3.1
     - [Download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1)
-    - You only need the "Runtime" (not the "SDK") installer.
+    - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
 2. Download the latest version of Plex DVR Waker
     - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/releases/latest)
     - Upgrading to a newer version?
