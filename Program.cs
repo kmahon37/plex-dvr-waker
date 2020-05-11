@@ -179,7 +179,8 @@ namespace PlexDvrWaker
                 " ",
                 Parser.Default.FormatCommandLine(options, ConfigureUnParserSettings)
             ));
-            Logger.LogToFile("Version: " + Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion);
+            Logger.LogToFile("PlexDvrWaker version: " + Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion);
+            Logger.LogToFile(".Net Core version: " + Environment.Version);
         }
 
         public static void ConfigureUnParserSettings(UnParserSettings settings)
