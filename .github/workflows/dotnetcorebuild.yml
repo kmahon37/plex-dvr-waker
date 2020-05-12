@@ -7,17 +7,6 @@ on:
     branches: [ master ]
 
 jobs:
-  changelog:
-    runs-on: windows-latest
-    steps:
-    - name: Checkout files
-      uses: actions/checkout@v2
-    - name: Verify changelog was updated
-      uses: dangoslen/changelog-enforcer@v1.0.0
-      with:
-        changeLogPath: 'CHANGELOG.md'
-        skipLabel: 'Skip-Changelog'
-
   build:
     runs-on: windows-latest
     steps:
