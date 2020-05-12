@@ -7,12 +7,19 @@ on:
     branches: [ master ]
 
 jobs:
+  
   build:
 
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout files
+      uses: actions/checkout@v2
+    - name: Verify changelog was updated
+      uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: 'CHANGELOG.md'
+        skipLabel: 'Skip-Changelog'
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
@@ -23,3 +30,4 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
+    
