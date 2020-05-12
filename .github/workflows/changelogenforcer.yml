@@ -1,4 +1,4 @@
-name: .NET Core Build
+name: Changelog Enforcer
 
 on:
   pull_request:
