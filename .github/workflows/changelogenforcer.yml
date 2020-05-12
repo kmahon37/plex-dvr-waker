@@ -3,7 +3,6 @@ name: Changelog Enforcer
 on:
   pull_request:
     branches: [ master ]
-    types: [ labeled, unlabeled ]
 
 jobs:
   changelog:
