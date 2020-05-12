@@ -1,12 +1,6 @@
-<a href="https://github.com/kmahon37/plex-dvr-waker/releases/latest">
-  <img alt="Latest release" src="https://img.shields.io/github/v/release/kmahon37/plex-dvr-waker">
-</a>
-<a href="https://github.com/kmahon37/plex-dvr-waker/tree/master">
-  <img alt="Build status" src="https://img.shields.io/github/workflow/status/kmahon37/plex-dvr-waker/.NET%20Core%20Build">
-</a>
-<a href="https://github.com/kmahon37/plex-dvr-waker/blob/master/LICENSE">
-  <img alt="License" src="https://img.shields.io/github/license/kmahon37/plex-dvr-waker">
-</a>
+<a href="https://github.com/kmahon37/plex-dvr-waker/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/kmahon37/plex-dvr-waker"></a>
+<a href="https://github.com/kmahon37/plex-dvr-waker/actions?query=workflow%3A%22.NET+Core+Build%22"><img alt="Build status" src="https://img.shields.io/github/workflow/status/kmahon37/plex-dvr-waker/.NET%20Core%20Build"></a>
+<a href="https://github.com/kmahon37/plex-dvr-waker/blob/master/LICENSE"><img alt="License" src="https://img.shields.io/github/license/kmahon37/plex-dvr-waker"></a>
 
 # Plex DVR Waker
 Are you fed up with Plex's lack of functionality to wakeup your computer to record a show?  C'mon, even a VCR from the '80s could do that.
