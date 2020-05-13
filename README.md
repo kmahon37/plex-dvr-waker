@@ -35,33 +35,41 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
     - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
 2. Download the latest version of Plex DVR Waker
     - [Download Plex DVR Waker](https://github.com/kmahon37/plex-dvr-waker/releases/latest)
-    - Upgrading to a newer version?
-      - If you are using the `monitor` task, then you must first stop it before you can delete/overwrite the `PlexDvrWaker.exe` file.
-        1. Open the Windows Task Scheduler.
-        2. Go to the "Plex DVR Waker" folder.
-        3. Right-click on the "DVR monitor" task, and click "End".
-    - Unzip the contents to your favorite folder.
+    - Unzip the contents to a folder.
+
+## Upgrades
+If you are upgrading from a previous version of Plex DVR Waker, please follow these steps.
+1. If you are using the `monitor` task, then you must first stop it before you can delete/overwrite the `PlexDvrWaker.exe` file.
+    1. Open the Windows Task Scheduler.
+    2. Go to the "Plex DVR Waker" folder.
+    3. Right-click on the "DVR monitor" task, and click "End".
+2. Delete the folder containing your previous version of Plex DVR Waker.
+3. Unzip the contents of the new version.
+4. Open an "Administrator" Command Prompt and rerun the `sync` or `monitor` commands (depending on which you were using previously).  Doing this will update the existing tasks in Windows Task Scheduler with any changes for the new Plex DVR Waker version.
 
 ## Quick Start
-If you want a quick way to get started, simply run the following `sync` command from an "Administrator" Command Prompt.  It will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes and create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording or Plex maintenance time.
+If you want a quick way to get started, simply run the following `sync` or `monitor` command from an "Administrator" Command Prompt.  The `sync` command will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes.  The `monitor` command will watch the Plex library database for changes.  Both will create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording or Plex maintenance time.  [See below for more information](#cmdline-add-task) and pros/cons of each command.
 ```
 PlexDvrWaker.exe add-task --sync
+  or
+PlexDvrWaker.exe add-task --monitor
 ```
 
 ## Command-line Arguments
 
 - [Display help](#cmdline-help)
-- [Adding a wakeup, sync, or monitor task](#cmdline-add-task)
+- [Add a wakeup, sync, or monitor task](#cmdline-add-task)
 - [Display upcoming scheduled recordings](#cmdline-list)
 - [Monitor Plex library database (interactive mode)](#cmdline-monitor)
 - [Custom Plex Installations](#cmdline-custom)
 
-### Displaying help <a name="cmdline-help"></a>
+### Display help <a name="cmdline-help"></a>
 The main help screen displays the top-level help for the available commands.  You can also view specific detailed help for each command by using the syntax: `PlexDvrWaker.exe help <command_name>` or `PlexDvrWaker.exe <command_name> --help`.
 
 *Usage:*
 ```
 PlexDvrWaker.exe help [add-task|list|monitor]
+  or
 PlexDvrWaker.exe [add-task|list|monitor] --help
 ```
 
@@ -81,7 +89,7 @@ PlexDvrWaker.exe [add-task|list|monitor] --help
   version     Display version information.
 ```
 
-### Adding a wakeup, sync, or monitor task <a name="cmdline-add-task"></a>
+### Add a wakeup, sync, or monitor task <a name="cmdline-add-task"></a>
 Plex DVR Waker works primarily by using Windows Task Scheduler tasks to keep up-to-date with the Plex library database and keep a wakeup task scheduled for your next recording time or Plex maintenance time.  You can use either the `sync` or `monitor` task, or both at the same time - the choice is yours based on your needs.
 
 The `wakeup` task will wakeup the computer from sleep 15 seconds before the next scheduled recording time or Plex maintenance time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.  The `wakeup` task will either not be created or be deleted if there are no shows to record.
@@ -227,3 +235,4 @@ If you wish to stop using Plex DVR Waker and uninstall it, just follow these ste
     2. Delete all tasks in the folder.
     3. Delete the "Plex DVR Waker" folder.
 2. Delete the folder where you unzipped Plex DVR Waker.
+3. If you installed the .NET Core Runtime, then you may optionally choose to uninstall it also (assuming nothing else is using it).
