@@ -3,12 +3,24 @@ name: Changelog Enforcer
 on:
   pull_request:
     branches: [ master ]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 jobs:
   changelog:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout files
-      uses: actions/checkout@v2
-    - name: Verify changelog was updated
+      # NOTE: The changelog-enforcer@1.0.0 currently only works with checkout@v1
+      uses: actions/checkout@v1
+    - name: Verify CHANGELOG.md was updated
       uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: CHANGELOG.md
+    - name: Verify VERSION was updated
+      uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: VERSION
+    - name: Verify PlexDvrWaker.csproj was updated
+      uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: PlexDvrWaker.csproj
