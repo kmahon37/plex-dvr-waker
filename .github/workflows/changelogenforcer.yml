@@ -10,5 +10,15 @@ jobs:
     steps:
     - name: Checkout files
       uses: actions/checkout@v2
-    - name: Verify changelog was updated
+    - name: Verify CHANGELOG.md was updated
       uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: CHANGELOG.md
+    - name: Verify VERSION was updated
+      uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: VERSION
+    - name: Verify .csproj was updated
+      uses: dangoslen/changelog-enforcer@v1.0.0
+      with:
+        changeLogPath: PlexDvrWaker.csproj
