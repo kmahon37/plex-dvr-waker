@@ -18,7 +18,7 @@ jobs:
       uses: dangoslen/changelog-enforcer@v1.0.0
       with:
         changeLogPath: VERSION
-    - name: Verify .csproj was updated
+    - name: Verify PlexDvrWaker.csproj was updated
       uses: dangoslen/changelog-enforcer@v1.0.0
       with:
         changeLogPath: PlexDvrWaker.csproj
