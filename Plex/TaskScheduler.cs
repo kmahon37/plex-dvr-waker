@@ -12,18 +12,16 @@ namespace PlexDvrWaker.Plex
     /// </summary>
     internal class TaskScheduler
     {
-        private const string TASK_SCHEDULER_FOLDER = "Plex DVR Waker";
+        private const string TASK_SCHEDULER_FOLDER = Program.APP_FRIENDLY_NAME;
         private const string TASK_NAME_DVR_WAKE = TASK_SCHEDULER_FOLDER + "\\DVR wake";
         private const string TASK_NAME_DVR_SYNC = TASK_SCHEDULER_FOLDER + "\\DVR sync";
         private const string TASK_NAME_DVR_MONITOR = TASK_SCHEDULER_FOLDER + "\\DVR monitor";
+        private const string TASK_NAME_VERSION_CHECK = TASK_SCHEDULER_FOLDER + "\\Version check";
 
-        private readonly string _workingDirectory;
         private readonly string _libraryDatabaseFileName;
 
         public TaskScheduler()
         {
-            var fullPath = typeof(TaskScheduler).Assembly.Location;
-            _workingDirectory = Path.GetDirectoryName(fullPath);
             _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
         }
 
@@ -55,8 +53,8 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = Program.EXE_NAME,
-                WorkingDirectory = _workingDirectory,
+                Path = Program.APP_EXE,
+                WorkingDirectory = Program.APP_WORKING_DIRECTORY,
                 Arguments = Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
@@ -71,7 +69,7 @@ namespace PlexDvrWaker.Plex
             });
 
             var successMessage = $"Wakeup task scheduled for {trigger.StartBoundary}";
-            if (!TryCreateAdminTask(TASK_NAME_DVR_WAKE, td, successMessage, showMessageToUser))
+            if (!TryCreateTask(TASK_NAME_DVR_WAKE, td, successMessage, showMessageToUser))
             {
                 return false;
             }
@@ -93,7 +91,7 @@ namespace PlexDvrWaker.Plex
             td.Settings.StopIfGoingOnBatteries = false;
             td.Settings.WakeToRun = false;
 
-            var tt = new TimeTrigger(new DateTime(2019, 1, 1))
+            var tt = new TimeTrigger(DateTime.Today)
             {
                 Repetition = new RepetitionPattern(TimeSpan.FromMinutes(intervalMinutes), TimeSpan.Zero)
             };
@@ -101,8 +99,8 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = Program.EXE_NAME,
-                WorkingDirectory = _workingDirectory,
+                Path = Program.APP_EXE,
+                WorkingDirectory = Program.APP_WORKING_DIRECTORY,
                 Arguments = Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
@@ -115,7 +113,7 @@ namespace PlexDvrWaker.Plex
             });
 
             var successMessage = $"DVR sync task scheduled for every {intervalMinutes} minute{(intervalMinutes > 1 ? "s" : "")}";
-            if (!TryCreateAdminTask(TASK_NAME_DVR_SYNC, td, successMessage, true))
+            if (!TryCreateTask(TASK_NAME_DVR_SYNC, td, successMessage, true))
             {
                 return false;
             }
@@ -148,8 +146,8 @@ namespace PlexDvrWaker.Plex
 
             td.Actions.Add(new ExecAction()
             {
-                Path = Program.EXE_NAME,
-                WorkingDirectory = _workingDirectory,
+                Path = Program.APP_EXE,
+                WorkingDirectory = Program.APP_WORKING_DIRECTORY,
                 Arguments = Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
@@ -163,7 +161,7 @@ namespace PlexDvrWaker.Plex
             });
 
             var successMessage = $"DVR monitor task scheduled to run at startup";
-            if (!TryCreateAdminTask(TASK_NAME_DVR_MONITOR, td, successMessage, true))
+            if (!TryCreateTask(TASK_NAME_DVR_MONITOR, td, successMessage, true))
             {
                 return false;
             }
@@ -175,7 +173,50 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
-        private static bool TryCreateAdminTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
+        public bool CreateOrUpdateVersionCheckTask(int intervalDays)
+        {
+            Logger.LogInformation($"Creating/updating version check task: {TASK_NAME_VERSION_CHECK}");
+
+            var td = TaskService.Instance.NewTask();
+            td.RegistrationInfo.Description = $"This task will check for a newer version of {Program.APP_FRIENDLY_NAME}.";
+            td.Principal.LogonType = TaskLogonType.InteractiveToken;
+            td.Settings.AllowDemandStart = true;
+            td.Settings.DisallowStartIfOnBatteries = false;
+            td.Settings.StopIfGoingOnBatteries = false;
+            td.Settings.WakeToRun = false;
+            td.Settings.RunOnlyIfNetworkAvailable = true;
+            td.Settings.StartWhenAvailable = true;
+
+            var tt = new TimeTrigger(DateTime.Now)
+            {
+                Repetition = new RepetitionPattern(TimeSpan.FromDays(intervalDays), TimeSpan.Zero)
+            };
+            td.Triggers.Add(tt);
+
+            td.Actions.Add(new ExecAction()
+            {
+                Path = Program.APP_EXE,
+                WorkingDirectory = Program.APP_WORKING_DIRECTORY,
+                Arguments = Parser.Default.FormatCommandLine(
+                    new VersionCheckOptions
+                    {
+                        NonInteractive = true,
+                        TaskName = TASK_NAME_VERSION_CHECK
+                    },
+                    Program.ConfigureUnParserSettings
+                )
+            });
+
+            var successMessage = $"Version check task scheduled for every {intervalDays} day{(intervalDays > 1 ? "s" : "")}";
+            if (!TryCreateTask(TASK_NAME_VERSION_CHECK, td, successMessage, true))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryCreateTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
         {
             // Stop the task first so that we can overwrite it
             var task = TaskService.Instance.GetTask(taskPathAndName);

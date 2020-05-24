@@ -32,8 +32,6 @@ namespace PlexDvrWaker.Plex
 
             lock (_scheduledRecordingsLock)
             {
-                _scheduledRecordings.Clear();
-
                 LoadSubscriptions();
 
                 if (_scheduledRecordings.Any())
@@ -171,6 +169,8 @@ namespace PlexDvrWaker.Plex
         {
             Logger.LogInformation("  Loading subscriptions");
 
+            _scheduledRecordings.Clear();
+
             // Get scheduled show/episode ids from library
             var sql = new StringBuilder()
                 .AppendLine("select distinct")
@@ -255,14 +255,18 @@ namespace PlexDvrWaker.Plex
                     }
                 }
             }
+
+            Logger.LogInformation($"    Subscriptions loaded: {_scheduledRecordings.Count()}");
         }
 
         private void LoadEpgInfo()
         {
-            Logger.LogInformation("  Loading EPG info for subscriptions");
-
             if (_scheduledRecordings.Any())
             {
+                var epgInfoCount = 0;
+
+                Logger.LogInformation("  Loading EPG info for subscriptions");
+
                 // Get EPG database file names since it appears like there could be multiple
                 var databaseFilePath = Path.GetDirectoryName(_libraryDatabaseFileName);
                 var tvEpgDatabaseFileNames = new List<string>();
@@ -341,6 +345,8 @@ namespace PlexDvrWaker.Plex
 
                                 if (_scheduledRecordings.TryGetValue(remoteId, out var rec))
                                 {
+                                    epgInfoCount++;
+
                                     rec.SeasonNumber = !reader.IsDBNull(1) ? reader.GetInt32(1) : default;
                                     rec.EpisodeNumber = !reader.IsDBNull(2) ? reader.GetInt32(2) : default;
 
@@ -380,30 +386,34 @@ namespace PlexDvrWaker.Plex
                         }
                     }
                 }
+
+                Logger.LogInformation($"    EPG info found: {epgInfoCount}");
             }
         }
 
         private void RemoveUnschedulableAndPastItems()
         {
-            Logger.LogInformation("  Removing unschedulable and past items");
-
             if (_scheduledRecordings.Any())
             {
+                Logger.LogInformation("  Removing unschedulable and past items");
+
                 // Remove items that don't have a start time, or that start in the past
                 var idsToRemove = _scheduledRecordings.Values
                     .Where(rec => !rec.StartTimeWithOffset.HasValue || rec.StartTimeWithOffset < DateTime.Now)
                     .Select(rec => rec.RemoteId);
 
                 RemoveScheduledRecordings(idsToRemove);
+
+                Logger.LogInformation($"    Removed items: {idsToRemove.Count()}");
             }
         }
 
         private void RemoveExistingTvShows()
         {
-            Logger.LogInformation("  Removing previously recorded TV shows");
-
             if (_scheduledRecordings.Any())
             {
+                Logger.LogInformation("  Removing previously recorded TV shows");
+
                 const string SUBSCRIPTION_ID_PARAM = "@subscriptionId";
                 const string SEASON_NUMBER_PARAM = "@seasonNumber";
                 const string EPISODE_NUMBER_PARAM = "@episodeNumber";
@@ -484,15 +494,17 @@ namespace PlexDvrWaker.Plex
                 }
 
                 RemoveScheduledRecordings(idsToRemove);
+
+                Logger.LogInformation($"    Removed TV shows: {idsToRemove.Count()}");
             }
         }
 
         private void RemoveExistingMovies()
         {
-            Logger.LogInformation("  Removing previously recorded movies");
-
             if (_scheduledRecordings.Any())
             {
+                Logger.LogInformation("  Removing previously recorded movies");
+
                 const string YEAR_PARAM = "@year";
                 const string TITLE_PARAM = "@title";
 
@@ -535,6 +547,8 @@ namespace PlexDvrWaker.Plex
                 }
 
                 RemoveScheduledRecordings(idsToRemove);
+
+                Logger.LogInformation($"    Removed movies: {idsToRemove.Count()}");
             }
         }
 
