@@ -218,14 +218,6 @@ namespace PlexDvrWaker.Plex
 
         private static bool TryCreateTask(string taskPathAndName, TaskDefinition td, string successMessage, bool showMessageToUser)
         {
-            // Stop the task first so that we can overwrite it
-            var task = TaskService.Instance.GetTask(taskPathAndName);
-            if (task != null && task.State == TaskState.Running)
-            {
-                Logger.LogInformation($"  Stopping the currently running task so that it can be updated");
-                task.Stop();
-            }
-
             try
             {
                 Logger.LogInformation("  Creating/updating the task");
