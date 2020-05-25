@@ -170,7 +170,7 @@ DVR monitor task scheduled to run at startup
 DVR monitor task has been started
 ```
 
-_Example output (`version-check`):_
+_Example output (`--version-check`):_
 ```
 Version check task scheduled for every 30 days
 ```
