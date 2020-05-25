@@ -102,7 +102,7 @@ _Example output:_
 ### Create scheduled tasks <a name="cmdline-add-task"></a>
 Plex DVR Waker works primarily by using Windows Task Scheduler tasks to keep up-to-date with the Plex library database and keep a wakeup task scheduled for your next recording time or Plex maintenance time.  You can use either the `sync` or `monitor` task, or both at the same time - the choice is yours based on your needs.
 
-The `wakeup` task will wakeup the computer from sleep 15 seconds before the next scheduled recording time or Plex maintenance time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.  The `wakeup` task will either not be created or be deleted if there are no shows to record.
+The `wakeup` task will wakeup the computer from sleep 15 seconds before the next scheduled recording time or Plex maintenance time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.
 
 The `sync` task will poll the Plex library database at a specified interval (default every 15 minutes) and create/update the `wakeup` task for you automatically.  This is a nice lightweight solution, however it could theoretically miss something if, for example, you schedule a recording to start in 8 minutes and then immediately put the computer to sleep before the next `sync` task can run.
 
