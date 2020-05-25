@@ -54,7 +54,9 @@ namespace PlexDvrWaker
                 SetupLogger(options);
 
                 // Setup and check if the database file actually exists
-                if (options is PlexOptions plexOpts && !SetupPlexLibraryDatabase(plexOpts))
+                if (options is PlexOptions plexOpts &&
+                    !(options is AddTaskOptions addTaskOpts && addTaskOpts.VersionCheck) &&
+                    !SetupPlexLibraryDatabase(plexOpts))
                 {
                     exitCode = (int)ExitCode.PlexLibraryDatabaseNotFound;
                 }
@@ -172,6 +174,24 @@ namespace PlexDvrWaker
 
         private static int RunVersionCheck(VersionCheckOptions options)
         {
+            ExitCode exitCode;
+
+            void waitBeforeClosing()
+            {
+                if (options.NonInteractive)
+                {
+                    Console.WriteLine();
+
+                    // Wait a couple seconds for user to see message before automatically closing
+                    for (int i = 5; i > 0; i--)
+                    {
+                        Console.WriteLine($"Closing in {i} seconds...");
+                        Console.CursorTop -= 1;
+                        Task.Delay(TimeSpan.FromSeconds(1)).Wait();
+                    }
+                }
+            }
+
             if (options.NonInteractive)
             {
                 var banner = $"**  {APP_FRIENDLY_NAME} - Version Check  **";
@@ -180,6 +200,8 @@ namespace PlexDvrWaker
                 Console.WriteLine(banner);
                 Console.WriteLine(border);
             }
+
+            Console.WriteLine("Fetching latest version information...");
 
             if (VersionUtils.TryGetLatestVersion(out var latestVersion))
             {
@@ -201,15 +223,19 @@ namespace PlexDvrWaker
                 else
                 {
                     Console.WriteLine("You already have the latest version.");
+                    waitBeforeClosing();
                 }
 
-                return (int)ExitCode.Success;
+                exitCode = ExitCode.Success;
             }
             else
             {
                 Logger.LogError("Unable to retrieve latest version information at this time.  Please try again later.");
-                return (int)ExitCode.VersionCheckError;
+                waitBeforeClosing();
+                exitCode = ExitCode.VersionCheckError;
             }
+
+            return (int)exitCode;
         }
 
         private static void SetupLogger(ProgramOptions options)
