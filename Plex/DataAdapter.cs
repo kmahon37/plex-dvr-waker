@@ -400,7 +400,7 @@ namespace PlexDvrWaker.Plex
                 // Remove items that don't have a start time, or that start in the past
                 var idsToRemove = _scheduledRecordings.Values
                     .Where(rec => !rec.StartTimeWithOffset.HasValue || rec.StartTimeWithOffset < DateTime.Now)
-                    .Select(rec => rec.RemoteId);
+                    .Select(rec => rec.RemoteId).ToArray();
 
                 RemoveScheduledRecordings(idsToRemove);
 
