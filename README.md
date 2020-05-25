@@ -108,7 +108,7 @@ The `sync` task will poll the Plex library database at a specified interval (def
 
 The `monitor` task will watch the Plex library database files for changes and also create/update the `wakeup` task for you automatically.  Plex can sometimes cause a lot of changes to its library database files in a short period of time which will cause the `wakeup` task to be updated frequently.  It is a fairly quick process to update the `wakeup` task, but just note that it may run a good bit more often.  You can use the `--debouce=SECONDS` option to adjust the frequency of runs.  The plus side is that you are basically guaranteed your `wakeup` task will always be set appropriately.
 
-The `version-check` task will check for a newer version of Plex DVR Waker every so many days (default every 30 days) and notify you if a newer version is available for download.  If you currently have the latest version, then you will not see any notifications (except for the console window popping up and closing real quick when it runs the check).  The version numbers respect the [Semantic Versioning 2.0.0](https://semver.org/) specification.
+The `version-check` task will check for a newer version of Plex DVR Waker every so many days (default every 30 days) and notify you if a newer version is available for download.  If you currently have the latest version, then you will not see any notifications (except for the console window popping up and closing real quick when it runs the check).  The scheduled task will only run when you are logged in and a network connection is available.  If the scheduled time is missed, then the task will run as soon as possible afterwards.  The version numbers respect the [Semantic Versioning 2.0.0](https://semver.org/) specification.
 
 _Usage:_
 ```
@@ -128,8 +128,8 @@ _Arguments:_
                                    interval and sync the 'wakeup' task with the next scheduled recording time or
                                    Plex maintenance time.
 
-  --sync-interval=MINUTES          (Default: 15) The interval to sync the 'wakeup' task with the next scheduled
-                                   recording time or Plex maintenance time.
+  --sync-interval=MINUTES          (Default: 15) The number of minutes between syncing the 'wakeup' task with the
+                                   next scheduled recording time or Plex maintenance time.
 
   --monitor                        Creates or updates a Windows Task Scheduler 'monitor' task to run in the
                                    background when the computer starts up that will monitor the Plex library

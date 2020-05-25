@@ -10,7 +10,7 @@ namespace PlexDvrWaker.CmdLine
     internal class AddTaskOptions : PlexOptions
     {
 
-#region Wakeup
+        #region Wakeup
 
         [Option("wakeup",
             SetName = "wakeup",
@@ -39,9 +39,9 @@ namespace PlexDvrWaker.CmdLine
             }
         }
 
-#endregion Wakeup
+        #endregion Wakeup
 
-#region Sync
+        #region Sync
 
         [Option("sync",
             SetName = "sync",
@@ -70,9 +70,9 @@ namespace PlexDvrWaker.CmdLine
             }
         }
 
-#endregion Sync
+        #endregion Sync
 
-#region Monitor
+        #region Monitor
 
         [Option("monitor",
             SetName = "monitor",
@@ -102,9 +102,9 @@ namespace PlexDvrWaker.CmdLine
             }
         }
 
-#endregion Monitor
+        #endregion Monitor
 
-#region Version
+        #region Version
 
         [Option("version-check",
             SetName = "version-check",
@@ -134,7 +134,7 @@ namespace PlexDvrWaker.CmdLine
             }
         }
 
-#endregion Version
+        #endregion Version
 
         [Usage(ApplicationAlias = Program.APP_EXE)]
         public static IEnumerable<Example> Examples

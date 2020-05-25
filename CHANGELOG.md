@@ -1,10 +1,11 @@
 ## 2.0.0 (2020-05-25)
 ### Breaking Changes _(Action Required)_:
-- Upgraded to use .NET Core 3.1 (since .NET Core 2.2 has reached "end of life" and is no longer supported by Microsoft). [#11](https://github.com/kmahon37/plex-dvr-waker/issues/11)
+- Upgraded to use .NET Core 3.1 (since .NET Core 2.2 has reached "end of life" and is no longer supported by Microsoft) [#11](https://github.com/kmahon37/plex-dvr-waker/issues/11)
   - You will need to download and install the latest Windows .NET Core Runtime 3.1
     - [Download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1)
     - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
   - You should also uninstall .NET Core 2.2 (assuming nothing else is using it).
+- Plex DVR Waker is now a `.exe` application.  You can now run it via `PlexDvrWaker.exe` (you no longer need to run it via `dotnet PlexDvrWaker.dll`).
 - Renamed some of the `add-task` options to make it clearer as to what they control (`--interval` is now `--sync-interval`, and `--debounce` is now `--monitor-debounce`).
   - It is recommended that you open an "Administrator" Command Prompt and rerun the `add-task` commands that you are using.  Doing this will update the existing tasks in Windows Task Scheduler with the necessary changes for this new version.
 
