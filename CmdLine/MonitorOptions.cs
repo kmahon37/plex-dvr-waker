@@ -5,8 +5,9 @@ using CommandLine.Text;
 
 namespace PlexDvrWaker.CmdLine
 {
-    [Verb("monitor", HelpText = "Monitors the Plex library database for changes and updates the 'wakeup' task based on the next scheduled recording time or Plex maintenance time.")]
-    internal class MonitorOptions : ProgramOptions
+    [Verb("monitor",
+        HelpText = "Monitors the Plex library database for changes and updates the 'wakeup' task based on the next scheduled recording time or Plex maintenance time.")]
+    internal class MonitorOptions : PlexOptions
     {
         private int? _debounceSeconds;
 
@@ -35,7 +36,7 @@ namespace PlexDvrWaker.CmdLine
             HelpText = "Determines whether to run the monitor in non-interactive mode when running from the Windows Task Scheduler.")]
         public bool NonInteractive { get; set; }
 
-        [Usage(ApplicationAlias = Program.APPLICATION_ALIAS)]
+        [Usage(ApplicationAlias = Program.APP_EXE)]
         public static IEnumerable<Example> Examples
         {
             get

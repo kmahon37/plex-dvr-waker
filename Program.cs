@@ -4,6 +4,7 @@ using PlexDvrWaker.Common;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace PlexDvrWaker
@@ -16,11 +17,14 @@ namespace PlexDvrWaker
             ArgumentParseError = 1,
             AccessDeniedDuringTaskCreation = 2,
             PlexLibraryDatabaseNotFound = 3,
-            DotNetExeNotFound = 4,
-            Unknown = 5
+            VersionCheckError = 4,
+            Unknown = 99
         }
 
-        internal const string APPLICATION_ALIAS = "dotnet PlexDvrWaker.dll";
+        internal const string APP_FRIENDLY_NAME = "Plex DVR Waker";
+        internal const string APP_EXE = "PlexDvrWaker.exe";
+        internal static readonly string APP_PATH_AND_EXE = typeof(Program).Assembly.Location;
+        internal static readonly string APP_WORKING_DIRECTORY = Path.GetDirectoryName(APP_PATH_AND_EXE);
 
         public static int Main(string[] args)
         {
@@ -30,11 +34,12 @@ namespace PlexDvrWaker
                 args = new string[] { "help" };
             }
 
-            return Parser.Default.ParseArguments<AddTaskOptions, ListOptions, MonitorOptions, ProgramOptions>(args)
+            return Parser.Default.ParseArguments<AddTaskOptions, ListOptions, MonitorOptions, VersionCheckOptions, ProgramOptions>(args)
                 .MapResult(
                     (AddTaskOptions opts) => RunVerb(opts, RunAddTask),
                     (ListOptions opts) => RunVerb(opts, RunList),
                     (MonitorOptions opts) => RunVerb(opts, RunMonitor),
+                    (VersionCheckOptions opts) => RunVerb(opts, RunVersionCheck),
                     errs => (int)ExitCode.ArgumentParseError
                 );
         }
@@ -45,12 +50,20 @@ namespace PlexDvrWaker
 
             try
             {
-                if (!TryInitializeVerb(options, out exitCode))
-                {
-                    return exitCode;
-                }
+                // Setup the logger first so we capture any errors
+                SetupLogger(options);
 
-                exitCode = verbFunc(options);
+                // Setup and check if the database file actually exists
+                if (options is PlexOptions plexOpts &&
+                    !(options is AddTaskOptions addTaskOpts && addTaskOpts.VersionCheck) &&
+                    !SetupPlexLibraryDatabase(plexOpts))
+                {
+                    exitCode = (int)ExitCode.PlexLibraryDatabaseNotFound;
+                }
+                else
+                {
+                    exitCode = verbFunc(options);
+                }
             }
             catch (Exception ex)
             {
@@ -72,10 +85,6 @@ namespace PlexDvrWaker
         private static int RunAddTask(AddTaskOptions options)
         {
             var taskScheduler = new Plex.TaskScheduler();
-            if (!taskScheduler.FindDotNetExeLocation())
-            {
-                return (int)ExitCode.DotNetExeNotFound;
-            }
 
             if (options.Wakeup)
             {
@@ -113,6 +122,15 @@ namespace PlexDvrWaker
                 }
             }
 
+            if (options.VersionCheck)
+            {
+                var created = taskScheduler.CreateOrUpdateVersionCheckTask(options.VersionCheckDays.Value);
+                if (!created)
+                {
+                    return (int)ExitCode.AccessDeniedDuringTaskCreation;
+                }
+            }
+
             return (int)ExitCode.Success;
         }
 
@@ -137,10 +155,6 @@ namespace PlexDvrWaker
         {
             var plexDataAdapter = new Plex.DataAdapter();
             var taskScheduler = new Plex.TaskScheduler();
-            if (!taskScheduler.FindDotNetExeLocation())
-            {
-                return (int)ExitCode.DotNetExeNotFound;
-            }
 
             using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value))
             {
@@ -158,20 +172,70 @@ namespace PlexDvrWaker
             return (int)ExitCode.Success;
         }
 
-        private static bool TryInitializeVerb(ProgramOptions options, out int exitCode)
+        private static int RunVersionCheck(VersionCheckOptions options)
         {
-            // Setup the logger first so we capture any errors
-            SetupLogger(options);
+            ExitCode exitCode;
 
-            // Setup and check if the database file actually exists
-            if (!SetupPlexLibraryDatabase(options))
+            void waitBeforeClosing()
             {
-                exitCode = (int)ExitCode.PlexLibraryDatabaseNotFound;
-                return false;
+                if (options.NonInteractive)
+                {
+                    Console.WriteLine();
+
+                    // Wait a couple seconds for user to see message before automatically closing
+                    for (int i = 5; i > 0; i--)
+                    {
+                        Console.WriteLine($"Closing in {i} seconds...");
+                        Console.CursorTop -= 1;
+                        Task.Delay(TimeSpan.FromSeconds(1)).Wait();
+                    }
+                }
             }
 
-            exitCode = (int)ExitCode.Success;
-            return true;
+            if (options.NonInteractive)
+            {
+                var banner = $"**  {APP_FRIENDLY_NAME} - Version Check  **";
+                var border = new string('*', banner.Length);
+                Console.WriteLine(border);
+                Console.WriteLine(banner);
+                Console.WriteLine(border);
+            }
+
+            Console.WriteLine("Fetching latest version information...");
+
+            if (VersionUtils.TryGetLatestVersion(out var latestVersion))
+            {
+                var assemblyVersion = VersionUtils.GetAssemblyVersion();
+                if (latestVersion > assemblyVersion)
+                {
+                    Console.WriteLine($"Current version: {assemblyVersion}");
+                    Console.WriteLine($"Latest version:  {latestVersion}");
+                    Console.WriteLine($"A newer version of {APP_FRIENDLY_NAME} is available for download from:");
+                    Console.WriteLine("https://github.com/kmahon37/plex-dvr-waker/releases/latest");
+
+                    if (options.NonInteractive)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Press any key to exit");
+                        Console.ReadKey(true);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("You already have the latest version.");
+                    waitBeforeClosing();
+                }
+
+                exitCode = ExitCode.Success;
+            }
+            else
+            {
+                Logger.LogError("Unable to retrieve latest version information at this time.  Please try again later.");
+                waitBeforeClosing();
+                exitCode = ExitCode.VersionCheckError;
+            }
+
+            return (int)exitCode;
         }
 
         private static void SetupLogger(ProgramOptions options)
@@ -183,16 +247,22 @@ namespace PlexDvrWaker
             // Log the command line and arguments that started this process
             Logger.LogToFile("--------------------------------------------------------------");
             Logger.LogToFile(string.Concat(
-                APPLICATION_ALIAS,
+                APP_EXE,
                 " ",
-                Parser.Default.FormatCommandLine(options, s => {
-                    s.UseEqualToken = true;
-                    s.ShowHidden = true;
-                })
+                Parser.Default.FormatCommandLine(options, ConfigureUnParserSettings)
             ));
+            Logger.LogToFile($"{APP_FRIENDLY_NAME} version: " + VersionUtils.GetAssemblyVersion());
+            Logger.LogToFile(".Net Core version: " + Environment.Version);
         }
 
-        private static bool SetupPlexLibraryDatabase(ProgramOptions options)
+        public static void ConfigureUnParserSettings(UnParserSettings settings)
+        {
+            settings.UseEqualToken = true;
+            settings.ShowHidden = true;
+            settings.SkipDefault = true;
+        }
+
+        private static bool SetupPlexLibraryDatabase(PlexOptions options)
         {
             // Override the default Plex library database file name, if specified
             if (!string.IsNullOrWhiteSpace(options.LibraryDatabaseFileName))

@@ -62,11 +62,16 @@ namespace PlexDvrWaker.Common
 
         public static void LogError(string message)
         {
-            LogToFile($"ERROR: {message}");
+            LogErrorToFile(message);
             LogToConsole($"ERROR: {message}", (msg) =>
             {
                 LogErrorToConsole(msg);
             });
+        }
+
+        public static void LogErrorToFile(string message)
+        {
+            LogToFile($"ERROR: {message}");
         }
 
         private static void LogErrorToConsole(string message)
