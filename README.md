@@ -13,7 +13,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 
 ## Supported Features
 - Syncs with and/or monitors the Plex library database and schedules a wakeup task
-- Wakes up the computer 15 seconds before the next scheduled recording or Plex maintenance time
+- Wakes up the computer before the next scheduled recording or Plex maintenance time
 - Recording start time offset is taken into account
 - Recognizes previously recorded TV shows and movies (as best as possible) so that it doesn't inadvertently wake the computer for something you already have recorded.
 - Prints out upcoming scheduled recordings and Plex maintenance time
@@ -49,11 +49,11 @@ If you are upgrading from a previous version of Plex DVR Waker, please follow th
 4. If you are upgrading to a newer major version (ie: 1.x.x -> 2.x.x), then you may need to open an "Administrator" Command Prompt and rerun the `add-task` commands that you are using.  Doing this will update the existing tasks in Windows Task Scheduler with any potential breaking changes for the new Plex DVR Waker version.
 
 ## Quick Start
-If you want a quick way to get started, simply run the following `sync` or `monitor` commands from an "Administrator" Command Prompt.  The `sync` command will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes.  The `monitor` command will watch the Plex library database for changes.  Both will create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording or Plex maintenance time.  [See below for more information](#cmdline-add-task) and pros/cons of each command.
+If you want a quick way to get started, simply run the following `sync` and/or `monitor` commands from an "Administrator" Command Prompt.  The `sync` command will create a Windows Task Scheduler task that will synchronize with the Plex library database every 15 minutes by default.  The `monitor` command will watch the Plex library database for changes.  Both will create/update a different Windows Task Scheduler task to wakeup the computer before your next scheduled recording or Plex maintenance time.  [See below for more information](#cmdline-add-task) and pros/cons of each command.
 ```
 PlexDvrWaker.exe add-task --sync
 ```
-or
+and/or
 ```
 PlexDvrWaker.exe add-task --monitor
 ```
@@ -102,27 +102,28 @@ _Example output:_
 ### Create scheduled tasks <a name="cmdline-add-task"></a>
 Plex DVR Waker works primarily by using Windows Task Scheduler tasks to keep up-to-date with the Plex library database and keep a wakeup task scheduled for your next recording time or Plex maintenance time.  You can use either the `sync` or `monitor` task, or both at the same time - the choice is yours based on your needs.
 
-The `wakeup` task will wakeup the computer from sleep 15 seconds before the next scheduled recording time or Plex maintenance time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.
+The `wakeup` task will wakeup the computer from sleep the specified number of seconds (default 15 seconds, use the `--offset=SECONDS` option to adjust) before the next scheduled recording time or Plex maintenance time.  You can add/run this task manually, but typically you would let either the `sync` or `monitor` task create/update the `wakeup` task for you.
 
-The `sync` task will poll the Plex library database at a specified interval (default every 15 minutes) and create/update the `wakeup` task for you automatically.  This is a nice lightweight solution, however it could theoretically miss something if, for example, you schedule a recording to start in 8 minutes and then immediately put the computer to sleep before the next `sync` task can run.
+The `sync` task will poll the Plex library database at a specified interval (default every 15 minutes) and create/update the `wakeup` task for you automatically.  This is a nice lightweight solution, however it could theoretically miss something if, for example, you schedule a recording to start in 8 minutes and then immediately put the computer to sleep before the next `sync` task can run.  You can also use the `--offset=SECONDS` option to adjust how long before the next recording that you want the computer to wakeup.
 
-The `monitor` task will watch the Plex library database files for changes and also create/update the `wakeup` task for you automatically.  Plex can sometimes cause a lot of changes to its library database files in a short period of time which will cause the `wakeup` task to be updated frequently.  It is a fairly quick process to update the `wakeup` task, but just note that it may run a good bit more often.  You can use the `--debouce=SECONDS` option to adjust the frequency of runs.  The plus side is that you are basically guaranteed your `wakeup` task will always be set appropriately.
+The `monitor` task will watch the Plex library database files for changes and also create/update the `wakeup` task for you automatically.  Plex can sometimes cause a lot of changes to its library database files in a short period of time which will cause the `wakeup` task to be updated frequently.  It is a fairly quick process to update the `wakeup` task, but just note that it may run a good bit more often.  You can use the `--debouce=SECONDS` option to adjust the frequency of runs.  The plus side is that your `wakeup` task will almost** always be set appropriately.  You can also use the `--offset=SECONDS` option to adjust how long before the next recording that you want the computer to wakeup.
+
+> _** For some reason, Plex does not always update the database files (I'm not sure why) and thus the file watcher that I use cannot detect the change immediately.  For this reason, if you frequently add/update/remove items from your recording schedule before the next scheduled recording time, then it is best to also use the `sync` task along with the `monitor` task to better ensure that the recording schedule changes will be picked up properly._
 
 The `version-check` task will check for a newer version of Plex DVR Waker every so many days (default every 30 days) and notify you if a newer version is available for download.  If you currently have the latest version, then you will not see any notifications (except for the console window popping up and closing real quick when it runs the check).  The scheduled task will only run when you are logged in and a network connection is available.  If the scheduled time is missed, then the task will run as soon as possible afterwards.  The version numbers respect the [Semantic Versioning 2.0.0](https://semver.org/) specification.
 
 _Usage:_
 ```
-PlexDvrWaker.exe add-task --wakeup [--database=FILE] [--verbose]
-PlexDvrWaker.exe add-task --sync [--interval=MINUTES] [--database=FILE] [--verbose]
-PlexDvrWaker.exe add-task --monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --wakeup [--offset=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --sync [--sync-interval=MINUTES] [--offset=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --monitor [--monitor-debounce=SECONDS] [--offset=SECONDS] [--database=FILE] [--verbose]
 PlexDvrWaker.exe add-task --version-check [--version-check-interval=DAYS] [--verbose]
 ```
 
 _Arguments:_
 ```
   --wakeup                         Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the
-                                   computer 15 seconds before the next scheduled recording time or Plex maintenance
-                                   time.
+                                   computer before the next scheduled recording time or Plex maintenance time.
 
   --sync                           Creates or updates a Windows Task Scheduler 'sync' task to run at the specified
                                    interval and sync the 'wakeup' task with the next scheduled recording time or
@@ -146,6 +147,10 @@ _Arguments:_
 
   --version-check-interval=DAYS    (Default: 30) The number of days between checking for a newer version of this
                                    application.
+
+  --offset=SECONDS                 (Default: 15) The number of seconds to wakeup the computer before the next scheduled
+                                   recording time or Plex maintenance time.  Applies to the 'wakeup', 'sync', and
+                                   'monitor' tasks.
 
   --database=FILE                  (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server
                                    \Plug-in Support\Databases\com.plexapp.plugins.library.db) The Plex library
@@ -211,11 +216,14 @@ You can also monitor the Plex library database for changes and automatically ref
 
 _Usage:_
 ```
-PlexDvrWaker.exe monitor [--debounce=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe monitor [--offset=SECONDS] [--debounce=SECONDS] [--database=FILE] [--verbose]
 ```
 
 _Arguments:_
 ```
+  --offset=SECONDS      (Default: 15) The number of seconds to wakeup the computer before the next scheduled recording
+                        time or Plex maintenance time.
+
   --debounce=SECONDS    (Default: 5) Since the database can change multiple times within a short time,
                         upon the first change it will wait the specified number of seconds before it
                         updates the Task Scheduler 'wakeup' task with the next scheduled recording time

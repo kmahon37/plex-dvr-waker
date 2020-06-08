@@ -15,24 +15,30 @@ namespace PlexDvrWaker.Plex
         private readonly DataAdapter _plexAdapter;
         private readonly TaskScheduler _taskScheduler;
         private readonly TimeSpan _bundledChangesTimeSpan;
+        private readonly int _wakeupOffsetSeconds;
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;
         private readonly Object _libraryChangedLock = new Object();
         private DateTime? _libraryChangedDate;
         private DateTime? _startDate;
         private ulong _numTimesTriggered;
 
-        public LibraryMonitor(DataAdapter plexAdapter, TaskScheduler taskScheduler, int debounceSeconds)
+        public LibraryMonitor(DataAdapter plexAdapter, TaskScheduler taskScheduler, int debounceSeconds, int offsetSeconds)
         {
             _plexAdapter = plexAdapter;
             _taskScheduler = taskScheduler;
             _bundledChangesTimeSpan = TimeSpan.FromSeconds(debounceSeconds);
+            _wakeupOffsetSeconds = offsetSeconds;
 
-            _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(Settings.LibraryDatabaseFileName), Path.GetFileName(Settings.LibraryDatabaseFileName) + "*")
+            var libraryDatabaseFileName = Path.GetFileName(Settings.LibraryDatabaseFileName);
+            _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(Settings.LibraryDatabaseFileName))
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 IncludeSubdirectories = false,
                 InternalBufferSize = 4096 * 8
             };
+            _libraryDatabaseFileWatcher.Filters.Add(libraryDatabaseFileName);
+            _libraryDatabaseFileWatcher.Filters.Add(libraryDatabaseFileName + "-wal");
+            _libraryDatabaseFileWatcher.Filters.Add(libraryDatabaseFileName + "-shm");
             _libraryDatabaseFileWatcher.Changed += OnLibraryDatabaseChanged;
             _libraryDatabaseFileWatcher.Error += OnLibraryDatabaseError;
         }
@@ -101,7 +107,7 @@ namespace PlexDvrWaker.Plex
             Logger.LogInformation("Refreshing next wakeup time");
 
             var wakeupTime = _plexAdapter.GetNextWakeupTime();
-            _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, false);
+            _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, _wakeupOffsetSeconds, false);
         }
 
         #region IDisposable Support

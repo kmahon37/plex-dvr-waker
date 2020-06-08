@@ -1,3 +1,7 @@
+## 2.1.0 (2020-06-07)
+### New Features:
+- Added a new `add-task` option of `--offset=SECONDS` for specifying the number of seconds to wakeup the computer before the next scheduled recording.  It defaults to 15 seconds which is the offset that was previously hard-coded.  Applies to the `wakeup`, `sync`, and `monitor` tasks. [#25](https://github.com/kmahon37/plex-dvr-waker/issues/25)
+
 ## 2.0.0 (2020-05-25)
 ### Breaking Changes _(Action Required)_:
 - Upgraded to use .NET Core 3.1 (since .NET Core 2.2 has reached "end of life" and is no longer supported by Microsoft) [#11](https://github.com/kmahon37/plex-dvr-waker/issues/11)

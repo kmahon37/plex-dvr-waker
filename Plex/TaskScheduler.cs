@@ -25,12 +25,12 @@ namespace PlexDvrWaker.Plex
             _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
         }
 
-        public bool CreateOrUpdateWakeUpTask(DateTime startTime)
+        public bool CreateOrUpdateWakeUpTask(DateTime startTime, int wakeupOffsetSeconds)
         {
-            return CreateOrUpdateWakeUpTask(startTime, true);
+            return CreateOrUpdateWakeUpTask(startTime, wakeupOffsetSeconds, true);
         }
 
-        internal bool CreateOrUpdateWakeUpTask(DateTime startTime, bool showMessageToUser)
+        internal bool CreateOrUpdateWakeUpTask(DateTime startTime, int wakeupOffsetSeconds, bool showMessageToUser)
         {
             Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
@@ -47,7 +47,7 @@ namespace PlexDvrWaker.Plex
             var trigger = new TimeTrigger()
             {
                 // Trigger a few seconds earlier to give computer time to wakeup
-                StartBoundary = startTime.AddSeconds(-15)
+                StartBoundary = startTime.AddSeconds(-1 * wakeupOffsetSeconds)
             };
             td.Triggers.Add(trigger);
 
@@ -58,9 +58,10 @@ namespace PlexDvrWaker.Plex
                 Arguments = Parser.Default.FormatCommandLine(
                     new AddTaskOptions
                     {
-                        // Recreate/update the wakeup task "after" the current recording has started.
+                        // Recreate/update the wakeup task 15 seconds "after" the current recording has started.
                         Wakeup = true,
-                        WakeupRefreshDelaySeconds = 30,
+                        WakeupOffsetSeconds = wakeupOffsetSeconds,
+                        WakeupRefreshDelaySeconds = wakeupOffsetSeconds + 15,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_WAKE
                     },
@@ -77,7 +78,7 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
-        public bool CreateOrUpdateDVRSyncTask(int intervalMinutes)
+        public bool CreateOrUpdateDVRSyncTask(int intervalMinutes, int wakeupOffsetSeconds)
         {
             Logger.LogInformation($"Creating/updating DVR sync task: {TASK_NAME_DVR_SYNC}");
 
@@ -105,6 +106,7 @@ namespace PlexDvrWaker.Plex
                     new AddTaskOptions
                     {
                         Wakeup = true,
+                        WakeupOffsetSeconds = wakeupOffsetSeconds,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_SYNC
                     },
@@ -121,7 +123,7 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
-        public bool CreateOrUpdateDVRMonitorTask(int debounceSeconds)
+        public bool CreateOrUpdateDVRMonitorTask(int debounceSeconds, int offsetSeconds)
         {
             Logger.LogInformation($"Creating/updating DVR monitor task: {TASK_NAME_DVR_MONITOR}");
 
@@ -151,6 +153,7 @@ namespace PlexDvrWaker.Plex
                 Arguments = Parser.Default.FormatCommandLine(
                     new MonitorOptions
                     {
+                        OffsetSeconds = offsetSeconds,
                         DebounceSeconds = debounceSeconds,
                         NonInteractive = true,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
