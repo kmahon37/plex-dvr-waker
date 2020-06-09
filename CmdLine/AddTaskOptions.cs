@@ -14,7 +14,7 @@ namespace PlexDvrWaker.CmdLine
 
         [Option("wakeup",
             SetName = "wakeup",
-            HelpText = "Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the computer 15 seconds before the next scheduled recording time or Plex maintenance time.")]
+            HelpText = "Creates or updates a Windows Task Scheduler 'wakeup' task that will wakeup the computer before the next scheduled recording time or Plex maintenance time.")]
         public bool Wakeup { get; set; }
 
         private int? _wakeupRefreshDelaySeconds;
@@ -31,10 +31,8 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                if (value.HasValue && value.Value < 0)
-                {
-                    throw new ArgumentOutOfRangeException("wakeup-delay", value.Value, "The value must be greater than or equal to 0.");
-                }
+                VerifyMinimumValue("wakeup-delay", value, 0);
+                VerifyWakeupDelayAndOffset("wakeup-delay", value, WakeupOffsetSeconds);
                 _wakeupRefreshDelaySeconds = value;
             }
         }
@@ -62,10 +60,7 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                if (value.HasValue && value.Value < 1)
-                {
-                    throw new ArgumentOutOfRangeException("sync-interval", value.Value, "The value must be greater than or equal to 1.");
-                }
+                VerifyMinimumValue("sync-interval", value, 1);
                 _syncIntervalMinutes = value;
             }
         }
@@ -94,10 +89,7 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                if (value.HasValue && value.Value < 1)
-                {
-                    throw new ArgumentOutOfRangeException("monitor-debounce", value.Value, "The value must be greater than or equal to 1.");
-                }
+                VerifyMinimumValue("monitor-debounce", value, 1);
                 _monitorDebounceSeconds = value;
             }
         }
@@ -106,13 +98,24 @@ namespace PlexDvrWaker.CmdLine
 
         #region Version
 
+        private bool _versionCheck;
         [Option("version-check",
             SetName = "version-check",
             HelpText = "Creates or updates a Windows Task Scheduler 'version-check' task to run at the specified interval and check for a newer version of this application.")]
-        public bool VersionCheck { get; set; }
+        public bool VersionCheck
+        {
+            get
+            {
+                return _versionCheck;
+            }
+            set
+            {
+                VerifyWakeupOffsetCompatibility(WakeupOffsetSeconds, value);
+                _versionCheck = value;
+            }
+        }
 
         private int? _versionCheckDays;
-
         [Option("version-check-interval",
             SetName = "version-check",
             MetaValue = "DAYS",
@@ -126,15 +129,33 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                if (value.HasValue && value.Value < 1)
-                {
-                    throw new ArgumentOutOfRangeException("version-check-interval", value.Value, "The value must be greater than or equal to 1.");
-                }
+                VerifyMinimumValue("version-check-interval", value, 1);
                 _versionCheckDays = value;
             }
         }
 
         #endregion Version
+
+        internal const int WAKEUP_OFFSET_SECONDS_DEFAULT = 15;
+        private int? _wakeupOffsetSeconds;
+        [Option("offset",
+            MetaValue = "SECONDS",
+            Default = WAKEUP_OFFSET_SECONDS_DEFAULT,
+            HelpText = "The number of seconds to wakeup the computer before the next scheduled recording time or Plex maintenance time.  Applies to the 'wakeup', 'sync', and 'monitor' tasks.")]
+        public int? WakeupOffsetSeconds
+        {
+            get
+            {
+                return _wakeupOffsetSeconds;
+            }
+            set
+            {
+                VerifyWakeupOffsetCompatibility(value, VersionCheck);
+                VerifyMinimumValue("offset", value, 0);
+                VerifyWakeupDelayAndOffset("offset", WakeupRefreshDelaySeconds, value);
+                _wakeupOffsetSeconds = value;
+            }
+        }
 
         [Usage(ApplicationAlias = Program.APP_EXE)]
         public static IEnumerable<Example> Examples
@@ -144,11 +165,27 @@ namespace PlexDvrWaker.CmdLine
                 var formatStyles = new[] { UnParserSettings.WithUseEqualTokenOnly() };
 
                 return new List<Example>() {
-                    new Example("Create the 'wakeup' task", formatStyles, new AddTaskOptions { Wakeup = true }),
-                    new Example("Create the 'sync' task", formatStyles, new AddTaskOptions { Sync = true, SyncIntervalMinutes = 15 }),
-                    new Example("Create the 'monitor' task", formatStyles, new AddTaskOptions { Monitor = true, MonitorDebounceSeconds = 5 }),
-                    new Example("Create the 'version-check' task", formatStyles, new AddTaskOptions { VersionCheck = true, VersionCheckDays = 30 })
+                    new Example("Create the 'wakeup' task with custom settings", formatStyles, new AddTaskOptions { Wakeup = true, WakeupOffsetSeconds = 60 }),
+                    new Example("Create the 'sync' task with custom settings", formatStyles, new AddTaskOptions { Sync = true, SyncIntervalMinutes = 5, WakeupOffsetSeconds = 60 }),
+                    new Example("Create the 'monitor' task with custom settings", formatStyles, new AddTaskOptions { Monitor = true, MonitorDebounceSeconds = 10, WakeupOffsetSeconds = 60 }),
+                    new Example("Create the 'version-check' task to check every 90 days", formatStyles, new AddTaskOptions { VersionCheck = true, VersionCheckDays = 90 })
                 };
+            }
+        }
+
+        private void VerifyWakeupOffsetCompatibility(int? offset, bool versionCheck)
+        {
+            if (offset.HasValue && versionCheck)
+            {
+                throw new ArgumentException($"The 'offset' option is not compatible with 'version-check'.", "offset");
+            }
+        }
+
+        private static void VerifyWakeupDelayAndOffset(string paramName, int? delaySeconds, int? offsetSeconds)
+        {
+            if (delaySeconds.HasValue && offsetSeconds.HasValue && delaySeconds.Value <= offsetSeconds.Value)
+            {
+                throw new ArgumentException($"The 'wakeup-delay' value '{delaySeconds.Value}' must be greater than the 'offset' value '{offsetSeconds.Value}' so that the Windows Task Scheduler 'wakeup' task will get updated after the current recording has started.", paramName);
             }
         }
 

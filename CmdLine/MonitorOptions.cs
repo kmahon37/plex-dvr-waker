@@ -11,6 +11,24 @@ namespace PlexDvrWaker.CmdLine
     {
         private int? _debounceSeconds;
 
+        private int? _offsetSeconds;
+        [Option("offset",
+            MetaValue = "SECONDS",
+            Default = AddTaskOptions.WAKEUP_OFFSET_SECONDS_DEFAULT,
+            HelpText = "The number of seconds to wakeup the computer before the next scheduled recording time or Plex maintenance time.")]
+        public int? OffsetSeconds
+        {
+            get
+            {
+                return _offsetSeconds;
+            }
+            set
+            {
+                VerifyMinimumValue("offset", value, 0);
+                _offsetSeconds = value;
+            }
+        }
+
         [Option("debounce",
             MetaValue = "SECONDS",
             Default = 5,
@@ -23,10 +41,7 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                if (value.HasValue && value.Value < 1)
-                {
-                    throw new ArgumentOutOfRangeException("debounce", value.Value, "The value must be greater than or equal to 1.");
-                }
+                VerifyMinimumValue("debounce", value, 1);
                 _debounceSeconds = value;
             }
         }
@@ -43,7 +58,7 @@ namespace PlexDvrWaker.CmdLine
             {
                 return new List<Example>() {
                     new Example("Monitors the Plex library database for changes", new MonitorOptions { }),
-                    new Example("Monitors with a custom debounce", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new MonitorOptions { DebounceSeconds = 30 }),
+                    new Example("Monitors with custom settings", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new MonitorOptions { DebounceSeconds = 30, OffsetSeconds = 60 }),
                     new Example("Monitors and prints messages to standard output", new MonitorOptions { Verbose = true })
                 };
             }

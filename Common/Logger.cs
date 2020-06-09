@@ -83,7 +83,7 @@ namespace PlexDvrWaker.Common
 
         private static void LogToConsole(string message, Action<string> logAction)
         {
-            if (InteractiveMonitor)
+            if (InteractiveMonitor && !Program.RunInDevEnv)
             {
                 // Keeps the "Press any key..." message at the bottom of the console
                 Console.CursorTop -= 1;
@@ -91,7 +91,7 @@ namespace PlexDvrWaker.Common
 
             logAction(message);
 
-            if (InteractiveMonitor)
+            if (InteractiveMonitor && !Program.RunInDevEnv)
             {
                 Console.WriteLine(Plex.LibraryMonitor.PRESS_ANY_KEY_TO_STOP);
             }

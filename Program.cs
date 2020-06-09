@@ -26,6 +26,8 @@ namespace PlexDvrWaker
         internal static readonly string APP_PATH_AND_EXE = typeof(Program).Assembly.Location;
         internal static readonly string APP_WORKING_DIRECTORY = Path.GetDirectoryName(APP_PATH_AND_EXE);
 
+        internal static readonly bool RunInDevEnv = bool.Parse(Environment.GetEnvironmentVariable("RunInDevEnv") ?? bool.FalseString);
+
         public static int Main(string[] args)
         {
             // If no args, show help by default
@@ -97,7 +99,7 @@ namespace PlexDvrWaker
 
                 var plexDataAdapter = new Plex.DataAdapter();
                 var wakeupTime = plexDataAdapter.GetNextWakeupTime();
-                var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime);
+                var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, options.WakeupOffsetSeconds.Value);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -106,7 +108,7 @@ namespace PlexDvrWaker
 
             if (options.Sync)
             {
-                var created = taskScheduler.CreateOrUpdateDVRSyncTask(options.SyncIntervalMinutes.Value);
+                var created = taskScheduler.CreateOrUpdateDVRSyncTask(options.SyncIntervalMinutes.Value, options.WakeupOffsetSeconds.Value);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -115,7 +117,7 @@ namespace PlexDvrWaker
 
             if (options.Monitor)
             {
-                var created = taskScheduler.CreateOrUpdateDVRMonitorTask(options.MonitorDebounceSeconds.Value);
+                var created = taskScheduler.CreateOrUpdateDVRMonitorTask(options.MonitorDebounceSeconds.Value, options.WakeupOffsetSeconds.Value);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -156,7 +158,7 @@ namespace PlexDvrWaker
             var plexDataAdapter = new Plex.DataAdapter();
             var taskScheduler = new Plex.TaskScheduler();
 
-            using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value))
+            using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value, options.OffsetSeconds.Value))
             {
                 libraryMonitor.Enabled = true;
 
@@ -166,7 +168,14 @@ namespace PlexDvrWaker
                 Logger.InteractiveMonitor = !options.NonInteractive;
                 Logger.LogToFile($"InteractiveMonitor: {Logger.InteractiveMonitor}");
 
-                Console.ReadKey(true);
+                if (RunInDevEnv)
+                {
+                    Console.Read();
+                }
+                else
+                {
+                    Console.ReadKey(true);
+                }
             }
 
             return (int)ExitCode.Success;
