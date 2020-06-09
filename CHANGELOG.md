@@ -1,4 +1,4 @@
-## 2.1.0 (2020-06-07)
+## 2.1.0 (2020-06-08)
 ### New Features:
 - Added a new `add-task` option of `--offset=SECONDS` for specifying the number of seconds to wakeup the computer before the next scheduled recording.  It defaults to 15 seconds which is the offset that was previously hard-coded.  Applies to the `wakeup`, `sync`, and `monitor` tasks. [#25](https://github.com/kmahon37/plex-dvr-waker/issues/25)
 
