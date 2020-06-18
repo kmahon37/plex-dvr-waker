@@ -1,3 +1,7 @@
+## 2.1.1 (2020-06-17)
+### Fixed bugs:
+- Fixed an issue when running the `monitor` task where it would not properly release the database connections which could prevent Plex from properly refreshing the TV Guide. [#27](https://github.com/kmahon37/plex-dvr-waker/issues/27)
+
 ## 2.1.0 (2020-06-08)
 ### New Features:
 - Added a new `add-task` option of `--offset=SECONDS` for specifying the number of seconds to wakeup the computer before the next scheduled recording.  It defaults to 15 seconds which is the offset that was previously hard-coded.  Applies to the `wakeup`, `sync`, and `monitor` tasks. [#25](https://github.com/kmahon37/plex-dvr-waker/issues/25)
