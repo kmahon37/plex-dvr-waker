@@ -11,7 +11,8 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
         },
         {
             "label": "publish (Debug)",
@@ -23,7 +24,8 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
         },
         {
             "label": "publish (Release)",
@@ -34,10 +36,13 @@
                 "${workspaceFolder}/PlexDvrWaker.csproj",
                 "--configuration",
                 "Release",
+                "--output",
+                "./bin/Release/netcoreapp3.1/PlexDvrWaker",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
         },
         {
             "label": "watch",
@@ -50,7 +55,31 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "Create release zip file",
+            "dependsOn": ["publish (Release)"],
+            "type": "shell",
+            "command": "Compress-Archive",
+            "args": [
+                "-Path",
+                "${workspaceFolder}/bin/Release/netcoreapp3.1/PlexDvrWaker",
+                "-DestinationPath",
+                "${workspaceFolder}/PrivateFiles/Releases/PlexDvrWaker.${input:version}.zip",
+                "-CompressionLevel",
+                "Optimal"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        }
+    ],
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "version",
+            "description": "The version number to attach to the zip file."
         }
     ]
 }

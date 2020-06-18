@@ -191,66 +191,67 @@ namespace PlexDvrWaker.Plex
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = sql.ToString();
-                    var reader = cmd.ExecuteReader();
-
-                    while (reader.Read())
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        var remoteId = Uri.UnescapeDataString(reader.GetString(4));
-
-                        if (!_scheduledRecordings.ContainsKey(remoteId))
+                        while (reader.Read())
                         {
-                            var startOffsetMinutes = 0;
-                            var endOffsetMinutes = 0;
+                            var remoteId = Uri.UnescapeDataString(reader.GetString(4));
 
-                            // Parse "extra_data" field for some advanced recording info.  We need to be
-                            // careful of unexpected data structures, so carefully grab what we need from it.
-                            var extraDataString = !reader.IsDBNull(5) ? reader.GetString(5) : string.Empty;
-                            if (!string.IsNullOrWhiteSpace(extraDataString))
+                            if (!_scheduledRecordings.ContainsKey(remoteId))
                             {
-                                var extraDataArray = Uri.UnescapeDataString(extraDataString).Split('&');
-                                if (extraDataArray.Any())
+                                var startOffsetMinutes = 0;
+                                var endOffsetMinutes = 0;
+
+                                // Parse "extra_data" field for some advanced recording info.  We need to be
+                                // careful of unexpected data structures, so carefully grab what we need from it.
+                                var extraDataString = !reader.IsDBNull(5) ? reader.GetString(5) : string.Empty;
+                                if (!string.IsNullOrWhiteSpace(extraDataString))
                                 {
-                                    bool tryGetExtraDataValue(string key, out string value)
+                                    var extraDataArray = Uri.UnescapeDataString(extraDataString).Split('&');
+                                    if (extraDataArray.Any())
                                     {
-                                        var arrayValue = extraDataArray.FirstOrDefault(s => s.StartsWith(key + "=", true, CultureInfo.InvariantCulture));
-                                        if (!string.IsNullOrWhiteSpace(arrayValue))
+                                        bool tryGetExtraDataValue(string key, out string value)
                                         {
-                                            var parts = arrayValue.Split('=', 2);
-                                            if (parts.Length == 2 && parts.All(s => !string.IsNullOrWhiteSpace(s)))
+                                            var arrayValue = extraDataArray.FirstOrDefault(s => s.StartsWith(key + "=", true, CultureInfo.InvariantCulture));
+                                            if (!string.IsNullOrWhiteSpace(arrayValue))
                                             {
-                                                value = parts[1];
-                                                return true;
+                                                var parts = arrayValue.Split('=', 2);
+                                                if (parts.Length == 2 && parts.All(s => !string.IsNullOrWhiteSpace(s)))
+                                                {
+                                                    value = parts[1];
+                                                    return true;
+                                                }
                                             }
+
+                                            value = null;
+                                            return false;
                                         }
 
-                                        value = null;
-                                        return false;
-                                    }
+                                        if (tryGetExtraDataValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
+                                        {
+                                            int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
+                                        }
 
-                                    if (tryGetExtraDataValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
-                                    {
-                                        int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
-                                    }
-
-                                    if (tryGetExtraDataValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
-                                    {
-                                        int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
+                                        if (tryGetExtraDataValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
+                                        {
+                                            int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
+                                        }
                                     }
                                 }
+
+                                var rec = new ScheduledRecording()
+                                {
+                                    SubscriptionId = reader.GetInt32(0),
+                                    SubscriptionMetadataType = (MetadataType)Enum.Parse(typeof(MetadataType), reader.GetInt32(1).ToString()),
+                                    ShowTitle = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty,
+                                    EpisodeTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty,
+                                    RemoteId = remoteId,
+                                    StartOffsetMinutes = startOffsetMinutes,
+                                    EndOffsetMinutes = endOffsetMinutes
+                                };
+
+                                _scheduledRecordings.Add(remoteId, rec);
                             }
-
-                            var rec = new ScheduledRecording()
-                            {
-                                SubscriptionId = reader.GetInt32(0),
-                                SubscriptionMetadataType = (MetadataType)Enum.Parse(typeof(MetadataType), reader.GetInt32(1).ToString()),
-                                ShowTitle = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty,
-                                EpisodeTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty,
-                                RemoteId = remoteId,
-                                StartOffsetMinutes = startOffsetMinutes,
-                                EndOffsetMinutes = endOffsetMinutes
-                            };
-
-                            _scheduledRecordings.Add(remoteId, rec);
                         }
                     }
                 }
@@ -284,14 +285,15 @@ namespace PlexDvrWaker.Plex
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = sqlEpgProviders.ToString();
-                        var reader = cmd.ExecuteReader();
-
-                        while (reader.Read())
+                        using (var reader = cmd.ExecuteReader())
                         {
-                            var identifier = reader.GetString(0);
-                            var uuid = reader.GetString(1);
-                            var tvEpgDatabaseFileName = Path.Combine(databaseFilePath, $"{identifier}-{uuid}.db");
-                            tvEpgDatabaseFileNames.Add(tvEpgDatabaseFileName);
+                            while (reader.Read())
+                            {
+                                var identifier = reader.GetString(0);
+                                var uuid = reader.GetString(1);
+                                var tvEpgDatabaseFileName = Path.Combine(databaseFilePath, $"{identifier}-{uuid}.db");
+                                tvEpgDatabaseFileNames.Add(tvEpgDatabaseFileName);
+                            }
                         }
                     }
                 }
@@ -337,49 +339,50 @@ namespace PlexDvrWaker.Plex
                                     .Select(id => new SQLiteParameter(DbType.String, 255) { Value = id })
                                     .ToArray()
                             );
-                            var reader = cmd.ExecuteReader();
-
-                            while (reader.Read())
+                            using (var reader = cmd.ExecuteReader())
                             {
-                                var remoteId = reader.GetString(0);
-
-                                if (_scheduledRecordings.TryGetValue(remoteId, out var rec))
+                                while (reader.Read())
                                 {
-                                    epgInfoCount++;
+                                    var remoteId = reader.GetString(0);
 
-                                    rec.SeasonNumber = !reader.IsDBNull(1) ? reader.GetInt32(1) : default;
-                                    rec.EpisodeNumber = !reader.IsDBNull(2) ? reader.GetInt32(2) : default;
-
-                                    if (string.IsNullOrWhiteSpace(rec.ShowTitle))
+                                    if (_scheduledRecordings.TryGetValue(remoteId, out var rec))
                                     {
-                                        rec.ShowTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty;
-                                    }
+                                        epgInfoCount++;
 
-                                    if (string.IsNullOrWhiteSpace(rec.SeasonTitle))
-                                    {
-                                        rec.SeasonTitle = !reader.IsDBNull(4) ? reader.GetString(4) : string.Empty;
-                                    }
+                                        rec.SeasonNumber = !reader.IsDBNull(1) ? reader.GetInt32(1) : default;
+                                        rec.EpisodeNumber = !reader.IsDBNull(2) ? reader.GetInt32(2) : default;
 
-                                    if (string.IsNullOrWhiteSpace(rec.EpisodeTitle))
-                                    {
-                                        rec.EpisodeTitle = !reader.IsDBNull(5) ? reader.GetString(5) : string.Empty;
-                                    }
+                                        if (string.IsNullOrWhiteSpace(rec.ShowTitle))
+                                        {
+                                            rec.ShowTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty;
+                                        }
 
-                                    rec.StartTime = reader.GetDateTime(6).ToLocalTime();
-                                    rec.EndTime = reader.GetDateTime(7).ToLocalTime();
-                                    rec.YearOriginallyAvailable = !reader.IsDBNull(8) ? reader.GetInt32(8) : default;
+                                        if (string.IsNullOrWhiteSpace(rec.SeasonTitle))
+                                        {
+                                            rec.SeasonTitle = !reader.IsDBNull(4) ? reader.GetString(4) : string.Empty;
+                                        }
 
-                                    // Clean up some bad Epg data
-                                    // Indicates Epg may not have full information for some reason
-                                    if (rec.SeasonNumber >= 1900)
-                                    {
-                                        rec.SeasonNumber = 0;
-                                        rec.SeasonTitle = string.Empty;
-                                    }
-                                    if (rec.EpisodeNumber < 0)
-                                    {
-                                        rec.EpisodeNumber = 0;
-                                        rec.EpisodeTitle = string.Empty;
+                                        if (string.IsNullOrWhiteSpace(rec.EpisodeTitle))
+                                        {
+                                            rec.EpisodeTitle = !reader.IsDBNull(5) ? reader.GetString(5) : string.Empty;
+                                        }
+
+                                        rec.StartTime = reader.GetDateTime(6).ToLocalTime();
+                                        rec.EndTime = reader.GetDateTime(7).ToLocalTime();
+                                        rec.YearOriginallyAvailable = !reader.IsDBNull(8) ? reader.GetInt32(8) : default;
+
+                                        // Clean up some bad Epg data
+                                        // Indicates Epg may not have full information for some reason
+                                        if (rec.SeasonNumber >= 1900)
+                                        {
+                                            rec.SeasonNumber = 0;
+                                            rec.SeasonTitle = string.Empty;
+                                        }
+                                        if (rec.EpisodeNumber < 0)
+                                        {
+                                            rec.EpisodeNumber = 0;
+                                            rec.EpisodeTitle = string.Empty;
+                                        }
                                     }
                                 }
                             }

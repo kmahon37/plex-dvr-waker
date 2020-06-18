@@ -168,13 +168,14 @@ namespace PlexDvrWaker
                 Logger.InteractiveMonitor = !options.NonInteractive;
                 Logger.LogToFile($"InteractiveMonitor: {Logger.InteractiveMonitor}");
 
-                if (RunInDevEnv)
+                if (Logger.InteractiveMonitor && !RunInDevEnv)
                 {
-                    Console.Read();
+                    Console.ReadKey(true);
                 }
                 else
                 {
-                    Console.ReadKey(true);
+                    // Running as a scheduled task, so wait indefinitely
+                    Task.Delay(-1).Wait();
                 }
             }
 
