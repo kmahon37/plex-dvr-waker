@@ -1,3 +1,7 @@
+## 2.2.0 (2020-07-23)
+### New Features:
+- Added the ability to detect schedule conflicts based on priority and number of DVR tuners available. [#29](https://github.com/kmahon37/plex-dvr-waker/issues/29)
+
 ## 2.1.1 (2020-06-17)
 ### Fixed bugs:
 - Fixed an issue when running the `monitor` task where it would not properly release the database connections which could prevent Plex from properly refreshing the TV Guide. [#27](https://github.com/kmahon37/plex-dvr-waker/issues/27)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace PlexDvrWaker.Plex.Contracts
 {
@@ -6,6 +7,8 @@ namespace PlexDvrWaker.Plex.Contracts
     {
         public int SubscriptionId { get; set; }
         public MetadataType SubscriptionMetadataType { get; set; }
+        public float SubscriptionPriorityOrder { get; set; }
+        public int DvrId { get; set; }
         public string RemoteId { get; set; }
 
         public string ShowTitle { get; set; }
@@ -35,6 +38,9 @@ namespace PlexDvrWaker.Plex.Contracts
             }
         }
         public int EndOffsetMinutes { get; set; }
+
+        public List<ScheduledRecording> Conflicts { get; } = new List<ScheduledRecording>();
+        public bool HasConflict { get; set; }
     }
 
     internal enum MetadataType

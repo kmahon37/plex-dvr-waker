@@ -40,6 +40,7 @@ namespace PlexDvrWaker.Plex
                     RemoveUnschedulableAndPastItems();
                     RemoveExistingTvShows();
                     RemoveExistingMovies();
+                    DetermineScheduleConflicts();
                 }
 
                 var count = _scheduledRecordings.Count();
@@ -67,6 +68,7 @@ namespace PlexDvrWaker.Plex
         private ScheduledRecording GetNextScheduledRecording(IEnumerable<ScheduledRecording> scheduledRecordings)
         {
             return scheduledRecordings
+                .Where(r => !r.HasConflict)
                 .OrderBy(r => r.StartTimeWithOffset)
                 .FirstOrDefault();
         }
@@ -77,7 +79,7 @@ namespace PlexDvrWaker.Plex
             return nextRec?.StartTimeWithOffset;
         }
 
-        public ScheduledMaintenance GetNextScheduledMaintenance()
+        public ScheduledMaintenance GetNextScheduledMaintenance(bool showMessageToUser)
         {
             Logger.LogInformation("Getting next Plex maintenance time");
 
@@ -87,15 +89,15 @@ namespace PlexDvrWaker.Plex
                 EndHour = Settings.ButlerEndHour
             };
 
-            Logger.LogInformation($"Plex maintenance is {scheduledMaintenance.StartHourString} to {scheduledMaintenance.EndHourString} every day");
-            Logger.LogInformation($"Next scheduled maintenance time is {scheduledMaintenance.StartTime} to {scheduledMaintenance.EndTime}");
+            Logger.LogInformation($"Plex maintenance is {scheduledMaintenance.StartHourString} to {scheduledMaintenance.EndHourString} every day", showMessageToUser);
+            Logger.LogInformation($"Next scheduled maintenance time is {FormatDateTime(scheduledMaintenance.StartTime)} to {FormatDateTime(scheduledMaintenance.EndTime)}", showMessageToUser);
 
             return scheduledMaintenance;
         }
 
         public DateTime GetNextScheduledMaintenanceTime()
         {
-            var scheduledMaintenance = GetNextScheduledMaintenance();
+            var scheduledMaintenance = GetNextScheduledMaintenance(false);
             return scheduledMaintenance.StartTime;
         }
 
@@ -122,33 +124,26 @@ namespace PlexDvrWaker.Plex
             var recs = GetScheduledRecordings();
             if (recs.Any())
             {
-                var startDateColLength = recs.Max(r => r.StartTimeWithOffset.ToString().Length);
-                var endDateColLength = recs.Max(r => r.EndTimeWithOffset.ToString().Length);
+                var startDateColLength = recs.Max(r => FormatDateTime(r.StartTimeWithOffset).Length);
+                var endDateColLength = recs.Max(r => FormatDateTime(r.EndTimeWithOffset).Length);
+                var hasConflicts = recs.Any(r => r.HasConflict);
+
                 static string getDateColHeader(string headerName, int dateColLength)
                 {
                     return headerName + new string(' ', dateColLength - headerName.Length);
                 }
+
                 static string getHeaderDivider(int length)
                 {
                     return new string('-', length);
                 }
-                Console.WriteLine($"{getDateColHeader("Start Time", startDateColLength)}\t{getDateColHeader("End Time", endDateColLength)}\tTitle");
-                Console.WriteLine($"{getHeaderDivider(startDateColLength)}\t{getHeaderDivider(endDateColLength)}\t{getHeaderDivider(50)}");
+
+                Console.WriteLine($"{getDateColHeader("Start Time", startDateColLength)}  {getDateColHeader("End Time", endDateColLength)}  Title  {(hasConflicts ? "(▲ = conflict)" : "")}");
+                Console.WriteLine($"{getHeaderDivider(startDateColLength)}  {getHeaderDivider(endDateColLength)}  {getHeaderDivider(50)}");
 
                 foreach (var rec in recs.OrderBy(r => r.StartTimeWithOffset))
                 {
-                    var parts = new[]
-                    {
-                        rec.ShowTitle,
-                        rec.SeasonTitle,
-                        (rec.SubscriptionMetadataType == MetadataType.Episode || rec.SubscriptionMetadataType == MetadataType.Show) && rec.EpisodeNumber > 0
-                            ? rec.SeasonNumber.ToString("'S'00") + rec.EpisodeNumber.ToString("'E'00")
-                            : string.Empty,
-                        rec.EpisodeTitle
-                    };
-                    var title = string.Join(" - ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
-
-                    Console.WriteLine($"{rec.StartTimeWithOffset}\t{rec.EndTimeWithOffset}\t{title}");
+                    Console.WriteLine($"{FormatDateTime(rec.StartTimeWithOffset).PadRight(startDateColLength)}  {FormatDateTime(rec.EndTimeWithOffset).PadRight(endDateColLength)}  {FormatRecordingTitle(rec)}");
                 }
             }
             else
@@ -159,10 +154,28 @@ namespace PlexDvrWaker.Plex
 
         public void PrintNextMaintenanceTime()
         {
-            var scheduledMaintenance = GetNextScheduledMaintenance();
+            GetNextScheduledMaintenance(true);
+        }
 
-            Console.WriteLine($"Plex maintenance is {scheduledMaintenance.StartHourString} to {scheduledMaintenance.EndHourString} every day");
-            Console.WriteLine($"Next scheduled maintenance time is {scheduledMaintenance.StartTime} to {scheduledMaintenance.EndTime}");
+        private string FormatRecordingTitle(ScheduledRecording rec)
+        {
+            var parts = new[]
+            {
+                rec.ShowTitle,
+                rec.SeasonTitle,
+                (rec.SubscriptionMetadataType == MetadataType.Episode || rec.SubscriptionMetadataType == MetadataType.Show) && rec.EpisodeNumber > 0
+                    ? rec.SeasonNumber.ToString("'S'00") + rec.EpisodeNumber.ToString("'E'00")
+                    : string.Empty,
+                rec.EpisodeTitle
+            };
+            var title = (rec.HasConflict ? "▲ " : "") + string.Join(" - ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+
+            return title;
+        }
+
+        private string FormatDateTime(DateTime? date)
+        {
+            return date.HasValue ? date.Value.ToString("g", DateTimeFormatInfo.CurrentInfo) : string.Empty;
         }
 
         private void LoadSubscriptions()
@@ -179,7 +192,8 @@ namespace PlexDvrWaker.Plex
                 .AppendLine($"  coalesce((case media_subscriptions.metadata_type when {(int)MetadataType.Show} then metadata_items.title when {(int)MetadataType.Episode} then null end), '') as show_title,")
                 .AppendLine($"  coalesce((case media_subscriptions.metadata_type when {(int)MetadataType.Show} then null when {(int)MetadataType.Episode} then metadata_items.title end), '') as episode_title,")
                 .AppendLine("  metadata_subscription_desired_items.remote_id,")
-                .AppendLine("  media_subscriptions.extra_data")
+                .AppendLine("  media_subscriptions.extra_data,")
+                .AppendLine("  media_subscriptions.\"order\"")
                 .AppendLine("from media_subscriptions")
                 .AppendLine("inner join metadata_subscription_desired_items on metadata_subscription_desired_items.sub_id = media_subscriptions.id")
                 .AppendLine("left join metadata_items on metadata_items.id = media_subscriptions.target_metadata_item_id")
@@ -210,29 +224,12 @@ namespace PlexDvrWaker.Plex
                                     var extraDataArray = Uri.UnescapeDataString(extraDataString).Split('&');
                                     if (extraDataArray.Any())
                                     {
-                                        bool tryGetExtraDataValue(string key, out string value)
-                                        {
-                                            var arrayValue = extraDataArray.FirstOrDefault(s => s.StartsWith(key + "=", true, CultureInfo.InvariantCulture));
-                                            if (!string.IsNullOrWhiteSpace(arrayValue))
-                                            {
-                                                var parts = arrayValue.Split('=', 2);
-                                                if (parts.Length == 2 && parts.All(s => !string.IsNullOrWhiteSpace(s)))
-                                                {
-                                                    value = parts[1];
-                                                    return true;
-                                                }
-                                            }
-
-                                            value = null;
-                                            return false;
-                                        }
-
-                                        if (tryGetExtraDataValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
+                                        if (TryGetExtraDataValue(extraDataArray, "pr:startOffsetMinutes", out string startOffsetMinutesString))
                                         {
                                             int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
                                         }
 
-                                        if (tryGetExtraDataValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
+                                        if (TryGetExtraDataValue(extraDataArray, "pr:endOffsetMinutes", out string endOffsetMinutesString))
                                         {
                                             int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
                                         }
@@ -243,12 +240,15 @@ namespace PlexDvrWaker.Plex
                                 {
                                     SubscriptionId = reader.GetInt32(0),
                                     SubscriptionMetadataType = (MetadataType)Enum.Parse(typeof(MetadataType), reader.GetInt32(1).ToString()),
+                                    SubscriptionPriorityOrder = reader.GetFloat(6),
                                     ShowTitle = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty,
                                     EpisodeTitle = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty,
                                     RemoteId = remoteId,
                                     StartOffsetMinutes = startOffsetMinutes,
                                     EndOffsetMinutes = endOffsetMinutes
                                 };
+
+                                Logger.LogInformation($"    {remoteId}\t{rec.SubscriptionMetadataType}\t{string.Join(" - ", (new[] {rec.ShowTitle, rec.EpisodeTitle}).Where(p => !string.IsNullOrWhiteSpace(p)))}");
 
                                 _scheduledRecordings.Add(remoteId, rec);
                             }
@@ -270,11 +270,12 @@ namespace PlexDvrWaker.Plex
 
                 // Get EPG database file names since it appears like there could be multiple
                 var databaseFilePath = Path.GetDirectoryName(_libraryDatabaseFileName);
-                var tvEpgDatabaseFileNames = new List<string>();
+                var tvEpgDatabases = new List<Tuple<string, int>>();
                 var sqlEpgProviders = new StringBuilder()
                     .AppendLine("select")
                     .AppendLine("  epg.identifier,")
-                    .AppendLine("  dvr.uuid")
+                    .AppendLine("  dvr.uuid,")
+                    .AppendLine("  dvr.id")
                     .AppendLine("from media_provider_resources as epg")
                     .AppendLine("inner join media_provider_resources as dvr on dvr.id = epg.parent_id")
                     .AppendLine("where epg.identifier like 'tv.plex.providers.epg.%'");
@@ -291,8 +292,10 @@ namespace PlexDvrWaker.Plex
                             {
                                 var identifier = reader.GetString(0);
                                 var uuid = reader.GetString(1);
+                                var dvrId = reader.GetInt32(2);
                                 var tvEpgDatabaseFileName = Path.Combine(databaseFilePath, $"{identifier}-{uuid}.db");
-                                tvEpgDatabaseFileNames.Add(tvEpgDatabaseFileName);
+
+                                tvEpgDatabases.Add(new Tuple<string, int>(tvEpgDatabaseFileName, dvrId));
                             }
                         }
                     }
@@ -326,8 +329,10 @@ namespace PlexDvrWaker.Plex
                     .AppendLine()
                     .AppendLine("drop table if exists temp.remote_ids;");
 
-                foreach (var tvEpgDatabaseFileName in tvEpgDatabaseFileNames)
+                foreach (var tvEpgDatabase in tvEpgDatabases)
                 {
+                    var (tvEpgDatabaseFileName, dvrId) = tvEpgDatabase;
+
                     using (var conn = new SQLiteConnection($"Data Source={tvEpgDatabaseFileName};Version=3;Read Only=True;"))
                     {
                         conn.Open();
@@ -348,6 +353,8 @@ namespace PlexDvrWaker.Plex
                                     if (_scheduledRecordings.TryGetValue(remoteId, out var rec))
                                     {
                                         epgInfoCount++;
+
+                                        rec.DvrId = dvrId;
 
                                         rec.SeasonNumber = !reader.IsDBNull(1) ? reader.GetInt32(1) : default;
                                         rec.EpisodeNumber = !reader.IsDBNull(2) ? reader.GetInt32(2) : default;
@@ -383,6 +390,8 @@ namespace PlexDvrWaker.Plex
                                             rec.EpisodeNumber = 0;
                                             rec.EpisodeTitle = string.Empty;
                                         }
+
+                                        Logger.LogInformation($"    {remoteId}\t{FormatDateTime(rec.StartTimeWithOffset)}\t{FormatDateTime(rec.EndTimeWithOffset)}\t{FormatRecordingTitle(rec)}");
                                     }
                                 }
                             }
@@ -402,7 +411,7 @@ namespace PlexDvrWaker.Plex
 
                 // Remove items that don't have a start time, or that start in the past
                 var idsToRemove = _scheduledRecordings.Values
-                    .Where(rec => !rec.StartTimeWithOffset.HasValue || rec.StartTimeWithOffset < DateTime.Now)
+                    .Where(rec => !rec.StartTimeWithOffset.HasValue || !rec.EndTimeWithOffset.HasValue || rec.StartTimeWithOffset < DateTime.Now)
                     .Select(rec => rec.RemoteId).ToArray();
 
                 RemoveScheduledRecordings(idsToRemove);
@@ -555,18 +564,205 @@ namespace PlexDvrWaker.Plex
             }
         }
 
+        private void DetermineScheduleConflicts()
+        {
+            if (_scheduledRecordings.Any())
+            {
+                Logger.LogInformation("  Determining recording conflicts based on priority");
+
+                static bool hasConflict(ScheduledRecording rec1, ScheduledRecording rec2)
+                {
+                    var start1 = rec1.StartTimeWithOffset.Value;
+                    var end1 = rec1.EndTimeWithOffset.Value;
+                    var start2 = rec2.StartTimeWithOffset.Value;
+                    var end2 = rec2.EndTimeWithOffset.Value;
+
+                    return start1 < end2 && end1 > start2;
+                }
+
+                // Identify all potential conflicts
+                foreach (var rec1 in _scheduledRecordings.Values)
+                {
+                    foreach (var rec2 in _scheduledRecordings.Values.Where(r => r != rec1))
+                    {
+                        if (hasConflict(rec1, rec2))
+                        {
+                            if (!rec1.Conflicts.Contains(rec2))
+                            {
+                                rec1.Conflicts.Add(rec2);
+                            }
+
+                            if (!rec2.Conflicts.Contains(rec1))
+                            {
+                                rec2.Conflicts.Add(rec1);
+                            }
+                        }
+                    }
+                }
+
+                // Reduce and mark actual conflicts based on number of tuners available
+                var tunerCounts = GetDvrTunerCounts();
+                var scheduledRecordingsOrdered = _scheduledRecordings.Values.OrderBy(r => r.SubscriptionPriorityOrder).ToArray();
+                foreach (var rec in scheduledRecordingsOrdered.Where(r => !r.HasConflict))
+                {
+                    if (!tunerCounts.TryGetValue(rec.DvrId, out var tunerCount))
+                    {
+                        Logger.LogInformation($"    WARNING: Scheduled recording has an unrecognized DVR id '{rec.DvrId}', assuming only 1 tuner");
+                        tunerCount = 1;
+                    }
+
+                    var conflicts = rec.Conflicts.Where(r => !r.HasConflict).ToArray();
+                    if (conflicts.Length + 1 > tunerCount)
+                    {
+                        var potentialConflicts = new List<ScheduledRecording>();
+
+                        // Only consider this show's conflicts that conflict with each other
+                        foreach (var rec1 in conflicts)
+                        {
+                            foreach (var rec2 in conflicts.Where(r => r != rec1))
+                            {
+                                if (hasConflict(rec1, rec2))
+                                {
+                                    if (!potentialConflicts.Contains(rec1))
+                                    {
+                                        potentialConflicts.Add(rec1);
+                                    }
+                                    
+                                    if (!potentialConflicts.Contains(rec2))
+                                    {
+                                        potentialConflicts.Add(rec2);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (potentialConflicts.Any())
+                        {
+                            potentialConflicts.Add(rec);
+
+                            // Mark the actual conflicts based on priority and number of tuners
+                            var actualConflicts = potentialConflicts
+                                .OrderBy(r => r.SubscriptionPriorityOrder)
+                                .Skip(tunerCount);
+
+                            foreach (var actualConflict in actualConflicts)
+                            {
+                                actualConflict.HasConflict = true;
+                            }
+
+                            var i = 0;
+                            Logger.LogInformation($"    Potential conflicts ({rec.RemoteId}):");
+                            foreach (var conflict in potentialConflicts.OrderBy(r => r.SubscriptionPriorityOrder))
+                            {
+                                Logger.LogInformation($"      {++i}:{conflict.SubscriptionPriorityOrder}\t{conflict.RemoteId}\t{FormatDateTime(conflict.StartTimeWithOffset)}\t{FormatDateTime(conflict.EndTimeWithOffset)}\t{FormatRecordingTitle(conflict)}");
+                            }
+                        }
+                    }
+                }
+
+                Logger.LogInformation($"    Conflicts found: {_scheduledRecordings.Values.Count(r => r.HasConflict)}");
+            }
+        }
+
         private void RemoveScheduledRecordings(IEnumerable<string> idsToRemove)
         {
             if (idsToRemove != null && idsToRemove.Any())
             {
                 foreach (var id in idsToRemove.ToArray())
                 {
-                    if (_scheduledRecordings.ContainsKey(id))
+                    if (_scheduledRecordings.TryGetValue(id, out var rec))
                     {
                         _scheduledRecordings.Remove(id);
+
+                        Logger.LogInformation($"    {id}\t{FormatDateTime(rec.StartTimeWithOffset)}\t{FormatDateTime(rec.EndTimeWithOffset)}\t{FormatRecordingTitle(rec)}");
                     }
                 }
             }
+        }
+
+        private bool TryGetExtraDataValue(string[] extraDataArray, string key, out string value)
+        {
+            var arrayValue = extraDataArray.FirstOrDefault(s => s.StartsWith(key + "=", true, CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(arrayValue))
+            {
+                var parts = arrayValue.Split('=', 2);
+                if (parts.Length == 2 && parts.All(s => !string.IsNullOrWhiteSpace(s)))
+                {
+                    value = parts[1];
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        private Dictionary<int, int> GetDvrTunerCounts()
+        {
+            var tunerCounts = new Dictionary<int, int>();
+
+            // I'm not entirely sure about what all the filters on this query actually mean, but this seems to indicate a DVR tuner that is enabled.
+            // I figure it is better to be more restrictive until I have a better understanding of all the fields.
+            var sqlDvrTuners = new StringBuilder()
+                .AppendLine("select")
+                .AppendLine("  parent_id,")
+                .AppendLine("  extra_data")
+                .AppendLine("from media_provider_resources")
+                .AppendLine("where identifier = 'tv.plex.grabbers.tunerservice'")
+                .AppendLine("and protocol = 'livetv'")
+                .AppendLine("and parent_id is not null")
+                .AppendLine("and type = 4")
+                .AppendLine("and status = 1")
+                .AppendLine("and state = 1");
+
+            using (var conn = new SQLiteConnection($"Data Source={_libraryDatabaseFileName};Version=3;Read Only=True;"))
+            {
+                conn.Open();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = sqlDvrTuners.ToString();
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var dvrId = reader.GetInt32(0);
+                            var tunerCount = 0;
+
+                            // Parse "extra_data" field for some advanced recording info.  We need to be
+                            // careful of unexpected data structures, so carefully grab what we need from it.
+                            var extraDataString = !reader.IsDBNull(1) ? reader.GetString(1) : string.Empty;
+                            if (!string.IsNullOrWhiteSpace(extraDataString))
+                            {
+                                var extraDataArray = Uri.UnescapeDataString(extraDataString).Split('&');
+                                if (extraDataArray.Any())
+                                {
+                                    if (TryGetExtraDataValue(extraDataArray, "at:tuners", out string tunersString))
+                                    {
+                                        int.TryParse(tunersString, out tunerCount);
+                                    }
+                                }
+                            }
+
+                            if (tunerCount == 0)
+                            {
+                                Logger.LogInformation($"    WARNING: Unable to fetch number of tuners for DVR id '{dvrId}', assuming only 1 tuner");
+                                tunerCount = 1;
+                            }
+
+                            tunerCounts.Add(dvrId, tunerCount);
+                        }
+                    }
+                }
+            }
+
+            Logger.LogInformation("    DVR tuners found:");
+            foreach (var dvr in tunerCounts)
+            {
+                Logger.LogInformation($"      DVR Id: {dvr.Key}\tTuner count: {dvr.Value}");
+            }
+
+            return tunerCounts;
         }
 
     }
