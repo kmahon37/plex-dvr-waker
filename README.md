@@ -27,6 +27,10 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 - Windows Task Scheduler
 - Windows .NET Core Runtime 3.1 ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1))
   - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
+- Windows Power Plan/Profile - The setting for "Allow wake timers" must be "Enabled"
+  - This is necessary for the computer to respond to the waker timers that Windows Task Scheduler will send (otherwise the tasks will fail to wake the computer).
+  - For Windows 10, this can be found under "Settings > System > Power & sleep > Additional power settings > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
+  - For Windows 7/8/10, this can be found under "Control Panel > System and Security > Power Options > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
 - "Run as administrator" rights
   - Administrator rights are needed in order to create the sync and/or monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation for console applications.
 
