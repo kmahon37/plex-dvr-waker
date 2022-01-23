@@ -1,3 +1,7 @@
+## 2.1.2 (2022-01-22)
+### Fixed bugs:
+- Fixed an issue when running `add-task --version-check` where it would cause the error "The 'offset' option is not compatible with 'version-check'". [#31](https://github.com/kmahon37/plex-dvr-waker/issues/31)
+
 ## 2.1.1 (2020-06-17)
 ### Fixed bugs:
 - Fixed an issue when running the `monitor` task where it would not properly release the database connections which could prevent Plex from properly refreshing the TV Guide. [#27](https://github.com/kmahon37/plex-dvr-waker/issues/27)
