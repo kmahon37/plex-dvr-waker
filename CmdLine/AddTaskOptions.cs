@@ -110,7 +110,6 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                VerifyWakeupOffsetCompatibility(WakeupOffsetSeconds, value);
                 _versionCheck = value;
             }
         }
@@ -150,7 +149,6 @@ namespace PlexDvrWaker.CmdLine
             }
             set
             {
-                VerifyWakeupOffsetCompatibility(value, VersionCheck);
                 VerifyMinimumValue("offset", value, 0);
                 VerifyWakeupDelayAndOffset("offset", WakeupRefreshDelaySeconds, value);
                 _wakeupOffsetSeconds = value;
@@ -170,14 +168,6 @@ namespace PlexDvrWaker.CmdLine
                     new Example("Create the 'monitor' task with custom settings", formatStyles, new AddTaskOptions { Monitor = true, MonitorDebounceSeconds = 10, WakeupOffsetSeconds = 60 }),
                     new Example("Create the 'version-check' task to check every 90 days", formatStyles, new AddTaskOptions { VersionCheck = true, VersionCheckDays = 90 })
                 };
-            }
-        }
-
-        private void VerifyWakeupOffsetCompatibility(int? offset, bool versionCheck)
-        {
-            if (offset.HasValue && versionCheck)
-            {
-                throw new ArgumentException($"The 'offset' option is not compatible with 'version-check'.", "offset");
             }
         }
 
