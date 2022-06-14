@@ -1,8 +1,9 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
-using System.Threading.Tasks;
 using Semver;
 
 namespace PlexDvrWaker.Common
@@ -59,5 +60,26 @@ namespace PlexDvrWaker.Common
             }
         }
 
+        public static string GetPlexMediaServerVersion()
+        {
+            // Search well-known install paths for "Plex Media Server.exe"
+            var searchPaths = new[]
+            {
+                Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%"),
+                Environment.ExpandEnvironmentVariables("%ProgramFiles%")
+            };
+
+            foreach (var searchPath in searchPaths)
+            {
+                var plexMediaServerPath = Path.Join(searchPath, "Plex", "Plex Media Server", "Plex Media Server.exe");
+
+                if (File.Exists(plexMediaServerPath))
+                {
+                    return FileVersionInfo.GetVersionInfo(plexMediaServerPath).FileVersion;
+                }
+            }
+
+            return "unknown";
+        }
     }
 }
