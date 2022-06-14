@@ -1,3 +1,7 @@
+## 2.1.3 (2022-06-13)
+### Fixed bugs:
+- Fixed an issue that was introduced by Plex Media Server v1.26.2.5797 updating their database schema for all date fields from "datetime" to "timestamp". [#33](https://github.com/kmahon37/plex-dvr-waker/issues/33)
+
 ## 2.1.2 (2022-01-22)
 ### Fixed bugs:
 - Fixed an issue when running `add-task --version-check` where it would cause the error "The 'offset' option is not compatible with 'version-check'". [#31](https://github.com/kmahon37/plex-dvr-waker/issues/31)
