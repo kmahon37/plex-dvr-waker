@@ -1,3 +1,7 @@
+## 2.2.0 (2022-06-19)
+### New Features:
+- Added a new `add-task` option of `--actions=FILE1;FILE2` for specifying one or more custom actions that will be executed when the `wakeup` task is triggered.  Applies to the `wakeup`, `sync`, and `monitor` tasks. [#35](https://github.com/kmahon37/plex-dvr-waker/issues/35)
+
 ## 2.1.3 (2022-06-13)
 ### Fixed bugs:
 - Fixed an issue that was introduced by Plex Media Server v1.26.2.5797 updating their database schema for all date fields from "datetime" to "timestamp". [#33](https://github.com/kmahon37/plex-dvr-waker/issues/33)

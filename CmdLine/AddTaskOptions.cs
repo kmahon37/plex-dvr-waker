@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 
@@ -155,6 +156,24 @@ namespace PlexDvrWaker.CmdLine
             }
         }
 
+        private IEnumerable<string> _wakeupActions;
+        [Option("actions",
+            MetaValue = "FILE1;FILE2",
+            HelpText = "A list of actions separated by ';' to run when the 'wakeup' task is triggered.  This can be a path to any file(s) that Windows Task Scheduler can execute (ie: .bat, .exe, etc).",
+            Separator = ';'
+        )]
+        public IEnumerable<string> WakeupActions
+        {
+            get
+            {
+                return _wakeupActions;
+            }
+            set
+            {
+                _wakeupActions = value.Select(v => $"\"{v.Trim('"')}\"").ToList();
+            }
+        }
+
         [Usage(ApplicationAlias = Program.APP_EXE)]
         public static IEnumerable<Example> Examples
         {
@@ -163,9 +182,9 @@ namespace PlexDvrWaker.CmdLine
                 var formatStyles = new[] { UnParserSettings.WithUseEqualTokenOnly() };
 
                 return new List<Example>() {
-                    new Example("Create the 'wakeup' task with custom settings", formatStyles, new AddTaskOptions { Wakeup = true, WakeupOffsetSeconds = 60 }),
-                    new Example("Create the 'sync' task with custom settings", formatStyles, new AddTaskOptions { Sync = true, SyncIntervalMinutes = 5, WakeupOffsetSeconds = 60 }),
-                    new Example("Create the 'monitor' task with custom settings", formatStyles, new AddTaskOptions { Monitor = true, MonitorDebounceSeconds = 10, WakeupOffsetSeconds = 60 }),
+                    new Example("Create the 'wakeup' task with custom settings", formatStyles, new AddTaskOptions { Wakeup = true, WakeupOffsetSeconds = 60, WakeupActions = new[] { "\"C:\\dir 1\\script.bat\"" } }),
+                    new Example("Create the 'sync' task with custom settings", formatStyles, new AddTaskOptions { Sync = true, SyncIntervalMinutes = 5, WakeupOffsetSeconds = 60, WakeupActions = new[] { "\"C:\\dir 1\\script.bat\"" } }),
+                    new Example("Create the 'monitor' task with custom settings", formatStyles, new AddTaskOptions { Monitor = true, MonitorDebounceSeconds = 10, WakeupOffsetSeconds = 60, WakeupActions = new[] { "\"C:\\dir 1\\script.bat\"" } }),
                     new Example("Create the 'version-check' task to check every 90 days", formatStyles, new AddTaskOptions { VersionCheck = true, VersionCheckDays = 90 })
                 };
             }
