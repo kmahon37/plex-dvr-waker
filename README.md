@@ -14,6 +14,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 ## Supported Features
 - Syncs with and/or monitors the Plex library database and schedules a wakeup task
 - Wakes up the computer before the next scheduled recording or Plex maintenance time
+  - Supports custom wake actions to run when the computer wakes up
 - Recording start time offset is taken into account
 - Recognizes previously recorded TV shows and movies (as best as possible) so that it doesn't inadvertently wake the computer for something you already have recorded.
 - Prints out upcoming scheduled recordings and Plex maintenance time
@@ -23,14 +24,14 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 
 ## Requirements
 - Plex Media Server for Windows ([download from Plex](https://www.plex.tv/media-server-downloads/))
-- Windows 7/8/10
+- Windows 7/8/10/11
 - Windows Task Scheduler
 - Windows .NET Core Runtime 3.1 ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1))
   - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
 - Windows Power Plan/Profile - The setting for "Allow wake timers" must be "Enabled"
   - This is necessary for the computer to respond to the waker timers that Windows Task Scheduler will send (otherwise the tasks will fail to wake the computer).
-  - For Windows 10, this can be found under "Settings > System > Power & sleep > Additional power settings > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
-  - For Windows 7/8/10, this can be found under "Control Panel > System and Security > Power Options > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
+  - For Windows 10/11, this can be found under "Settings > System > Power & sleep > Additional power settings > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
+  - For Windows 7/8/10/11, this can be found under "Control Panel > System and Security > Power Options > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
 - "Run as administrator" rights
   - Administrator rights are needed in order to create the sync and/or monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation for console applications.
 
@@ -118,9 +119,9 @@ The `version-check` task will check for a newer version of Plex DVR Waker every 
 
 _Usage:_
 ```
-PlexDvrWaker.exe add-task --wakeup [--offset=SECONDS] [--database=FILE] [--verbose]
-PlexDvrWaker.exe add-task --sync [--sync-interval=MINUTES] [--offset=SECONDS] [--database=FILE] [--verbose]
-PlexDvrWaker.exe add-task --monitor [--monitor-debounce=SECONDS] [--offset=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --wakeup [--offset=SECONDS] [--actions=FILE1;FILE2] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --sync [--sync-interval=MINUTES] [--offset=SECONDS] [--actions=FILE1;FILE2] [--database=FILE] [--verbose]
+PlexDvrWaker.exe add-task --monitor [--monitor-debounce=SECONDS] [--offset=SECONDS] [--actions=FILE1;FILE2] [--database=FILE] [--verbose]
 PlexDvrWaker.exe add-task --version-check [--version-check-interval=DAYS] [--verbose]
 ```
 
@@ -155,6 +156,10 @@ _Arguments:_
   --offset=SECONDS                 (Default: 15) The number of seconds to wakeup the computer before the next scheduled
                                    recording time or Plex maintenance time.  Applies to the 'wakeup', 'sync', and
                                    'monitor' tasks.
+
+  --actions=FILE1;FILE2            A list of actions separated by ';' to run when the 'wakeup' task is triggered.  This
+                                   can be a path to any file(s) that Windows Task Scheduler can execute (ie: .bat, .exe,
+                                   etc).
 
   --database=FILE                  (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server
                                    \Plug-in Support\Databases\com.plexapp.plugins.library.db) The Plex library
@@ -220,24 +225,27 @@ You can also monitor the Plex library database for changes and automatically ref
 
 _Usage:_
 ```
-PlexDvrWaker.exe monitor [--offset=SECONDS] [--debounce=SECONDS] [--database=FILE] [--verbose]
+PlexDvrWaker.exe monitor [--offset=SECONDS] [--debounce=SECONDS] [--actions=FILE1;FILE2] [--database=FILE] [--verbose]
 ```
 
 _Arguments:_
 ```
-  --offset=SECONDS      (Default: 15) The number of seconds to wakeup the computer before the next scheduled recording
-                        time or Plex maintenance time.
+  --offset=SECONDS         (Default: 15) The number of seconds to wakeup the computer before the next scheduled recording
+                           time or Plex maintenance time.
 
-  --debounce=SECONDS    (Default: 5) Since the database can change multiple times within a short time,
-                        upon the first change it will wait the specified number of seconds before it
-                        updates the Task Scheduler 'wakeup' task with the next scheduled recording time
-                        or Plex maintenance time. (Minimum: 1 second)
+  --debounce=SECONDS       (Default: 5) Since the database can change multiple times within a short time, upon the first
+                           change it will wait the specified number of seconds before it updates the Task Scheduler
+                           'wakeup' task with the next scheduled recording time or Plex maintenance time.  (Minimum: 1
+                           second)
 
-  --database=FILE       (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server\Plug-in
-                        Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for
-                        custom Plex installations.
+  --actions=FILE1;FILE2    A list of actions separated by ';' to run when the 'wakeup' task is triggered.  This can be a
+                           path to any file(s) that Windows Task Scheduler can execute (ie: .bat, .exe, etc).
 
-  --verbose             Prints all messages to standard output.
+  --database=FILE          (Default: <Plex local application data path or %LOCALAPPDATA%>\Plex Media Server\Plug-in
+                           Support\Databases\com.plexapp.plugins.library.db) The Plex library database file to use for
+                           custom Plex installations.
+
+  --verbose                Prints all messages to standard output.
 ```
 
 _Example output:_
@@ -279,7 +287,7 @@ By default, Plex DVR Waker tries to load Plex's local application data storage p
 ## Troubleshooting
 
 ### Windows Task Scheduler
-Plex DVR Waker works simply by using scheduled tasks in the Windows built-in Task Scheduler program.  To see the scheduled tasks, open the Task Scheduler and go to the "Plex DVR Waker" folder.  You should see up to 4 tasks named: DVR monitor, DVR sync, DVR wakeup, Version check.  You may edit/delete these tasks, but your changes may be lost if you run any of the `add-task` commands as they will overwrite/recreate these tasks.
+Plex DVR Waker works simply by using scheduled tasks in the Windows built-in Task Scheduler program.  To see the scheduled tasks, open the Task Scheduler and go to the "Plex DVR Waker" folder.  You should see up to 4 tasks named: DVR monitor, DVR sync, DVR wakeup, Version check.  You may edit/delete these tasks, but your changes may be lost if you run any of the `add-task` commands as they will overwrite/recreate these tasks.  The 'wakeup' task gets overwritten/recreated every time it is triggered.
 
 ### Log files
 If you are having issues, you can check the Plex DVR Waker log files located in the same directory.  There are up to 4 rolling log files that can reach 1MB each.  If needed, these files can safely be deleted, but they will regenerate over time.

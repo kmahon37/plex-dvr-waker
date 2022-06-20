@@ -1,5 +1,6 @@
 using PlexDvrWaker.Common;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -16,18 +17,20 @@ namespace PlexDvrWaker.Plex
         private readonly TaskScheduler _taskScheduler;
         private readonly TimeSpan _bundledChangesTimeSpan;
         private readonly int _wakeupOffsetSeconds;
+        private readonly IEnumerable<string> _wakeupActions;
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;
         private readonly Object _libraryChangedLock = new Object();
         private DateTime? _libraryChangedDate;
         private DateTime? _startDate;
         private ulong _numTimesTriggered;
 
-        public LibraryMonitor(DataAdapter plexAdapter, TaskScheduler taskScheduler, int debounceSeconds, int offsetSeconds)
+        public LibraryMonitor(DataAdapter plexAdapter, TaskScheduler taskScheduler, int debounceSeconds, int offsetSeconds, IEnumerable<string> wakeupActions)
         {
             _plexAdapter = plexAdapter;
             _taskScheduler = taskScheduler;
             _bundledChangesTimeSpan = TimeSpan.FromSeconds(debounceSeconds);
             _wakeupOffsetSeconds = offsetSeconds;
+            _wakeupActions = wakeupActions;
 
             var libraryDatabaseFileName = Path.GetFileName(Settings.LibraryDatabaseFileName);
             _libraryDatabaseFileWatcher = new FileSystemWatcher(Path.GetDirectoryName(Settings.LibraryDatabaseFileName))
@@ -107,7 +110,7 @@ namespace PlexDvrWaker.Plex
             Logger.LogInformation("Refreshing next wakeup time");
 
             var wakeupTime = _plexAdapter.GetNextWakeupTime();
-            _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, _wakeupOffsetSeconds, false);
+            _taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, _wakeupOffsetSeconds, _wakeupActions, false);
         }
 
         #region IDisposable Support

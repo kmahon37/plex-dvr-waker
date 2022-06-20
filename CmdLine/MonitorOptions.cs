@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 
@@ -46,6 +47,24 @@ namespace PlexDvrWaker.CmdLine
             }
         }
 
+        private IEnumerable<string> _wakeupActions;
+        [Option("actions",
+            MetaValue = "FILE1;FILE2",
+            HelpText = "A list of actions separated by ';' to run when the 'wakeup' task is triggered.  This can be a path to any file(s) that Windows Task Scheduler can execute (ie: .bat, .exe, etc).",
+            Separator = ';'
+        )]
+        public IEnumerable<string> WakeupActions
+        {
+            get
+            {
+                return _wakeupActions;
+            }
+            set
+            {
+                _wakeupActions = value.Select(v => $"\"{v.Trim('"')}\"").ToList();
+            }
+        }
+
         [Option("non-interactive",
             Hidden = true,
             HelpText = "Determines whether to run the monitor in non-interactive mode when running from the Windows Task Scheduler.")]
@@ -58,7 +77,7 @@ namespace PlexDvrWaker.CmdLine
             {
                 return new List<Example>() {
                     new Example("Monitors the Plex library database for changes", new MonitorOptions { }),
-                    new Example("Monitors with custom settings", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new MonitorOptions { DebounceSeconds = 30, OffsetSeconds = 60 }),
+                    new Example("Monitors with custom settings", new[] { UnParserSettings.WithUseEqualTokenOnly() }, new MonitorOptions { DebounceSeconds = 30, OffsetSeconds = 60, WakeupActions = new[] { "\"C:\\dir 1\\script.bat\"" } }),
                     new Example("Monitors and prints messages to standard output", new MonitorOptions { Verbose = true })
                 };
             }

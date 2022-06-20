@@ -99,7 +99,7 @@ namespace PlexDvrWaker
 
                 var plexDataAdapter = new Plex.DataAdapter();
                 var wakeupTime = plexDataAdapter.GetNextWakeupTime();
-                var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, options.WakeupOffsetSeconds.Value);
+                var created = taskScheduler.CreateOrUpdateWakeUpTask(wakeupTime, options.WakeupOffsetSeconds.Value, options.WakeupActions);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -108,7 +108,7 @@ namespace PlexDvrWaker
 
             if (options.Sync)
             {
-                var created = taskScheduler.CreateOrUpdateDVRSyncTask(options.SyncIntervalMinutes.Value, options.WakeupOffsetSeconds.Value);
+                var created = taskScheduler.CreateOrUpdateDVRSyncTask(options.SyncIntervalMinutes.Value, options.WakeupOffsetSeconds.Value, options.WakeupActions);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -117,7 +117,7 @@ namespace PlexDvrWaker
 
             if (options.Monitor)
             {
-                var created = taskScheduler.CreateOrUpdateDVRMonitorTask(options.MonitorDebounceSeconds.Value, options.WakeupOffsetSeconds.Value);
+                var created = taskScheduler.CreateOrUpdateDVRMonitorTask(options.MonitorDebounceSeconds.Value, options.WakeupOffsetSeconds.Value, options.WakeupActions);
                 if (!created)
                 {
                     return (int)ExitCode.AccessDeniedDuringTaskCreation;
@@ -158,7 +158,7 @@ namespace PlexDvrWaker
             var plexDataAdapter = new Plex.DataAdapter();
             var taskScheduler = new Plex.TaskScheduler();
 
-            using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value, options.OffsetSeconds.Value))
+            using (var libraryMonitor = new Plex.LibraryMonitor(plexDataAdapter, taskScheduler, options.DebounceSeconds.Value, options.OffsetSeconds.Value, options.WakeupActions))
             {
                 libraryMonitor.Enabled = true;
 

@@ -3,7 +3,9 @@ using Microsoft.Win32.TaskScheduler;
 using PlexDvrWaker.CmdLine;
 using PlexDvrWaker.Common;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace PlexDvrWaker.Plex
 {
@@ -25,12 +27,12 @@ namespace PlexDvrWaker.Plex
             _libraryDatabaseFileName = Settings.LibraryDatabaseIsOverridden ? Settings.LibraryDatabaseFileName : null;
         }
 
-        public bool CreateOrUpdateWakeUpTask(DateTime startTime, int wakeupOffsetSeconds)
+        public bool CreateOrUpdateWakeUpTask(DateTime startTime, int wakeupOffsetSeconds, IEnumerable<string> wakeupActions)
         {
-            return CreateOrUpdateWakeUpTask(startTime, wakeupOffsetSeconds, true);
+            return CreateOrUpdateWakeUpTask(startTime, wakeupOffsetSeconds, wakeupActions, true);
         }
 
-        internal bool CreateOrUpdateWakeUpTask(DateTime startTime, int wakeupOffsetSeconds, bool showMessageToUser)
+        internal bool CreateOrUpdateWakeUpTask(DateTime startTime, int wakeupOffsetSeconds, IEnumerable<string> wakeupActions, bool showMessageToUser)
         {
             Logger.LogInformation($"Creating/updating wakeup task: {TASK_NAME_DVR_WAKE}");
 
@@ -51,6 +53,13 @@ namespace PlexDvrWaker.Plex
             };
             td.Triggers.Add(trigger);
 
+            // Add custom wakeup actions first
+            if (wakeupActions != null && wakeupActions.Any())
+            {
+                td.Actions.AddRange(wakeupActions.Select(wakeupAction => new ExecAction { Path = wakeupAction }));
+            }
+
+            // Add the recreate/update wakeup action last because it will delay when the wakeup task is being refreshed
             td.Actions.Add(new ExecAction()
             {
                 Path = Program.APP_EXE,
@@ -62,6 +71,7 @@ namespace PlexDvrWaker.Plex
                         Wakeup = true,
                         WakeupOffsetSeconds = wakeupOffsetSeconds,
                         WakeupRefreshDelaySeconds = wakeupOffsetSeconds + 15,
+                        WakeupActions = wakeupActions,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_WAKE
                     },
@@ -78,7 +88,7 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
-        public bool CreateOrUpdateDVRSyncTask(int intervalMinutes, int wakeupOffsetSeconds)
+        public bool CreateOrUpdateDVRSyncTask(int intervalMinutes, int wakeupOffsetSeconds, IEnumerable<string> wakeupActions)
         {
             Logger.LogInformation($"Creating/updating DVR sync task: {TASK_NAME_DVR_SYNC}");
 
@@ -107,6 +117,7 @@ namespace PlexDvrWaker.Plex
                     {
                         Wakeup = true,
                         WakeupOffsetSeconds = wakeupOffsetSeconds,
+                        WakeupActions = wakeupActions,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_SYNC
                     },
@@ -123,7 +134,7 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
-        public bool CreateOrUpdateDVRMonitorTask(int debounceSeconds, int offsetSeconds)
+        public bool CreateOrUpdateDVRMonitorTask(int debounceSeconds, int offsetSeconds, IEnumerable<string> wakeupActions)
         {
             Logger.LogInformation($"Creating/updating DVR monitor task: {TASK_NAME_DVR_MONITOR}");
 
@@ -155,6 +166,7 @@ namespace PlexDvrWaker.Plex
                     {
                         OffsetSeconds = offsetSeconds,
                         DebounceSeconds = debounceSeconds,
+                        WakeupActions = wakeupActions,
                         NonInteractive = true,
                         LibraryDatabaseFileName = _libraryDatabaseFileName,
                         TaskName = TASK_NAME_DVR_MONITOR
