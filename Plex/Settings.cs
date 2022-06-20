@@ -8,7 +8,7 @@ namespace PlexDvrWaker.Plex
     /// Static class for reading Plex settings from the Windows Registry
     /// </summary>
     /// <remarks>
-    /// The defaults are defined by Plex, but we need them here because the values may not be 
+    /// The defaults are defined by Plex, but we need them here because the values may not be
     /// written in the registry yet if the user has never changed the settings.
     /// </remarks>
     internal static class Settings

@@ -14,7 +14,7 @@ namespace PlexDvrWaker.Common
         public static SemVersion GetAssemblyVersion()
         {
             var versionString = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-            return SemVersion.Parse(versionString);
+            return SemVersion.Parse(versionString, SemVersionStyles.Strict);
         }
 
         public static bool TryGetLatestVersion(out SemVersion latestVersion)
@@ -31,7 +31,7 @@ namespace PlexDvrWaker.Common
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
                     var latestVersionString = response.Content.ReadAsStringAsync().Result.Trim();
-                    latestVersion = SemVersion.Parse(latestVersionString);
+                    latestVersion = SemVersion.Parse(latestVersionString, SemVersionStyles.Strict);
                     Logger.LogInformation($"Latest version: {latestVersion}");
                     return true;
                 }

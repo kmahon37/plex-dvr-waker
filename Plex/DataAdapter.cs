@@ -18,8 +18,8 @@ namespace PlexDvrWaker.Plex
     internal class DataAdapter
     {
         private readonly string _libraryDatabaseFileName;
-        private readonly Dictionary<string, ScheduledRecording> _scheduledRecordings = new Dictionary<string, ScheduledRecording>();
-        private readonly object _scheduledRecordingsLock = new object();
+        private readonly Dictionary<string, ScheduledRecording> _scheduledRecordings = new();
+        private readonly object _scheduledRecordingsLock = new();
 
         public DataAdapter()
         {
@@ -42,7 +42,7 @@ namespace PlexDvrWaker.Plex
                     RemoveExistingMovies();
                 }
 
-                var count = _scheduledRecordings.Count();
+                var count = _scheduledRecordings.Count;
                 var msg = $"Found {count} upcoming scheduled recordings";
                 if (count > 0)
                 {
@@ -64,7 +64,7 @@ namespace PlexDvrWaker.Plex
             return GetNextScheduledRecording(recs);
         }
 
-        private ScheduledRecording GetNextScheduledRecording(IEnumerable<ScheduledRecording> scheduledRecordings)
+        private static ScheduledRecording GetNextScheduledRecording(IEnumerable<ScheduledRecording> scheduledRecordings)
         {
             return scheduledRecordings
                 .OrderBy(r => r.StartTimeWithOffset)
@@ -77,7 +77,9 @@ namespace PlexDvrWaker.Plex
             return nextRec?.StartTimeWithOffset;
         }
 
+#pragma warning disable CA1822
         public ScheduledMaintenance GetNextScheduledMaintenance()
+#pragma warning restore CA1822
         {
             Logger.LogInformation("Getting next Plex maintenance time");
 
@@ -229,12 +231,12 @@ namespace PlexDvrWaker.Plex
 
                                         if (tryGetExtraDataValue("pr:startOffsetMinutes", out string startOffsetMinutesString))
                                         {
-                                            int.TryParse(startOffsetMinutesString, out startOffsetMinutes);
+                                            startOffsetMinutes = int.TryParse(startOffsetMinutesString, out startOffsetMinutes) ? startOffsetMinutes : 0;
                                         }
 
                                         if (tryGetExtraDataValue("pr:endOffsetMinutes", out string endOffsetMinutesString))
                                         {
-                                            int.TryParse(endOffsetMinutesString, out endOffsetMinutes);
+                                            endOffsetMinutes = int.TryParse(endOffsetMinutesString, out endOffsetMinutes) ? endOffsetMinutes : 0;
                                         }
                                     }
                                 }
@@ -257,7 +259,7 @@ namespace PlexDvrWaker.Plex
                 }
             }
 
-            Logger.LogInformation($"    Subscriptions loaded: {_scheduledRecordings.Count()}");
+            Logger.LogInformation($"    Subscriptions loaded: {_scheduledRecordings.Count}");
         }
 
         private void LoadEpgInfo()
@@ -407,7 +409,7 @@ namespace PlexDvrWaker.Plex
 
                 RemoveScheduledRecordings(idsToRemove);
 
-                Logger.LogInformation($"    Removed items: {idsToRemove.Count()}");
+                Logger.LogInformation($"    Removed items: {idsToRemove.Length}");
             }
         }
 
@@ -498,7 +500,7 @@ namespace PlexDvrWaker.Plex
 
                 RemoveScheduledRecordings(idsToRemove);
 
-                Logger.LogInformation($"    Removed TV shows: {idsToRemove.Count()}");
+                Logger.LogInformation($"    Removed TV shows: {idsToRemove.Count}");
             }
         }
 
@@ -551,7 +553,7 @@ namespace PlexDvrWaker.Plex
 
                 RemoveScheduledRecordings(idsToRemove);
 
-                Logger.LogInformation($"    Removed movies: {idsToRemove.Count()}");
+                Logger.LogInformation($"    Removed movies: {idsToRemove.Count}");
             }
         }
 

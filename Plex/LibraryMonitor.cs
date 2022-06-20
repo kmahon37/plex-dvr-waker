@@ -19,7 +19,7 @@ namespace PlexDvrWaker.Plex
         private readonly int _wakeupOffsetSeconds;
         private readonly IEnumerable<string> _wakeupActions;
         private readonly FileSystemWatcher _libraryDatabaseFileWatcher;
-        private readonly Object _libraryChangedLock = new Object();
+        private readonly object _libraryChangedLock = new();
         private DateTime? _libraryChangedDate;
         private DateTime? _startDate;
         private ulong _numTimesTriggered;
@@ -99,7 +99,7 @@ namespace PlexDvrWaker.Plex
 
         private void OnLibraryDatabaseError(object source, ErrorEventArgs e)
         {
-            if (!(e.GetException() is InternalBufferOverflowException))
+            if (e.GetException() is not InternalBufferOverflowException)
             {
                 Logger.LogError(e.GetException().ToString());
             }

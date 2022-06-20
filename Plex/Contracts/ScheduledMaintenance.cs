@@ -40,12 +40,12 @@ namespace PlexDvrWaker.Plex.Contracts
 
         #region Private
 
-        private DateTime GetDateWithHour(DateTime date, int hour)
+        private static DateTime GetDateWithHour(DateTime date, int hour)
         {
             return new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
         }
 
-        private string GetHourString(int hour)
+        private static string GetHourString(int hour)
         {
             if (hour == 0)
             {
