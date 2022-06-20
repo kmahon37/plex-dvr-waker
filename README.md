@@ -14,6 +14,7 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 ## Supported Features
 - Syncs with and/or monitors the Plex library database and schedules a wakeup task
 - Wakes up the computer before the next scheduled recording or Plex maintenance time
+  - Supports custom wake actions to run when the computer wakes up
 - Recording start time offset is taken into account
 - Recognizes previously recorded TV shows and movies (as best as possible) so that it doesn't inadvertently wake the computer for something you already have recorded.
 - Prints out upcoming scheduled recordings and Plex maintenance time
@@ -23,14 +24,14 @@ Plex DVR Waker is a simple command-line tool for waking the computer before the 
 
 ## Requirements
 - Plex Media Server for Windows ([download from Plex](https://www.plex.tv/media-server-downloads/))
-- Windows 7/8/10
+- Windows 7/8/10/11
 - Windows Task Scheduler
 - Windows .NET Core Runtime 3.1 ([download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/3.1))
   - You only need the ".NET Core Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
 - Windows Power Plan/Profile - The setting for "Allow wake timers" must be "Enabled"
   - This is necessary for the computer to respond to the waker timers that Windows Task Scheduler will send (otherwise the tasks will fail to wake the computer).
-  - For Windows 10, this can be found under "Settings > System > Power & sleep > Additional power settings > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
-  - For Windows 7/8/10, this can be found under "Control Panel > System and Security > Power Options > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
+  - For Windows 10/11, this can be found under "Settings > System > Power & sleep > Additional power settings > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
+  - For Windows 7/8/10/11, this can be found under "Control Panel > System and Security > Power Options > Change plan settings (for your current plan) > Change advanced power settings > Sleep > Allow wake timers"
 - "Run as administrator" rights
   - Administrator rights are needed in order to create the sync and/or monitor tasks so that they run hidden without popping up a console window every time the task is triggered.  This is a Windows Task Scheduler limitation for console applications.
 
