@@ -1,4 +1,4 @@
-## 2.2.0 (2022-06-19)
+## 2.2.0 (2022-06-20)
 ### New Features:
 - Added a new `add-task` option of `--actions=FILE1;FILE2` for specifying one or more custom actions that will be executed when the `wakeup` task is triggered.  Applies to the `wakeup`, `sync`, and `monitor` tasks. [#35](https://github.com/kmahon37/plex-dvr-waker/issues/35)
 
