@@ -4,9 +4,10 @@ using PlexDvrWaker.Common;
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 
+[assembly: SupportedOSPlatform("windows")]
 namespace PlexDvrWaker
 {
     public static class Program
@@ -216,7 +217,8 @@ namespace PlexDvrWaker
             if (VersionUtils.TryGetLatestVersion(out var latestVersion))
             {
                 var assemblyVersion = VersionUtils.GetAssemblyVersion();
-                if (latestVersion > assemblyVersion)
+
+                if (latestVersion.ComparePrecedenceTo(assemblyVersion) > 0)
                 {
                     Console.WriteLine($"Current version: {assemblyVersion}");
                     Console.WriteLine($"Latest version:  {latestVersion}");
@@ -251,7 +253,7 @@ namespace PlexDvrWaker
         private static void SetupLogger(ProgramOptions options)
         {
             // Configure the logger
-            Logger.ProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
+            Logger.ProcessId = Environment.ProcessId;
             Logger.Verbose = options.Verbose;
 
             // Log the command line and arguments that started this process

@@ -12,7 +12,7 @@ namespace PlexDvrWaker.Common
         private static readonly ConsoleColor DEFAULT_FOREGROUND_COLOR = ConsoleColor.Gray;
         private const int MAX_ROLLED_LOG_COUNT = 3;
         private const int MAX_LOG_SIZE = 1 * 1024 * 1024;  //1MB
-        private static readonly object LOG_FILE_LOCK = new Object();
+        private static readonly object LOG_FILE_LOCK = new();
 
         private static string _logFileName;
         private static string LogFileName

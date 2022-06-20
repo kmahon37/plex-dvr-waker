@@ -188,7 +188,9 @@ namespace PlexDvrWaker.Plex
             return true;
         }
 
+#pragma warning disable CA1822
         public bool CreateOrUpdateVersionCheckTask(int intervalDays)
+#pragma warning restore CA1822
         {
             Logger.LogInformation($"Creating/updating version check task: {TASK_NAME_VERSION_CHECK}");
 

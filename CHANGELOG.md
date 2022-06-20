@@ -1,3 +1,11 @@
+## 3.0.0 (2022-06-20)
+### _Action Required_
+- Upgraded to use .NET 6.0 (since .NET Core 3.1 reaches "end of life" on 2022-12-13 and will no longer supported by Microsoft) [#37](https://github.com/kmahon37/plex-dvr-waker/issues/37)
+  - You will need to download and install the latest Windows .NET Runtime 6.0
+    - [Download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/6.0)
+    - You only need the ".NET Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
+  - You should also uninstall .NET Core 3.1 (assuming nothing else is using it).
+
 ## 2.2.0 (2022-06-20)
 ### New Features:
 - Added a new `add-task` option of `--actions=FILE1;FILE2` for specifying one or more custom actions that will be executed when the `wakeup` task is triggered.  Applies to the `wakeup`, `sync`, and `monitor` tasks. [#35](https://github.com/kmahon37/plex-dvr-waker/issues/35)
