@@ -1,3 +1,6 @@
+## 3.0.1 (2023-06-19)
+- Upgraded packages to fix potential security vulnerability (CVE-2023-29331)
+
 ## 3.0.0 (2022-06-20)
 ### _Action Required_
 - Upgraded to use .NET 6.0 (since .NET Core 3.1 reaches "end of life" on 2022-12-13 and will no longer supported by Microsoft) [#37](https://github.com/kmahon37/plex-dvr-waker/issues/37)
