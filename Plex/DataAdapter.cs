@@ -139,18 +139,8 @@ namespace PlexDvrWaker.Plex
 
                 foreach (var rec in recs.OrderBy(r => r.StartTimeWithOffset))
                 {
-                    var parts = new[]
-                    {
-                        rec.ShowTitle,
-                        rec.SeasonTitle,
-                        (rec.SubscriptionMetadataType == MetadataType.Episode || rec.SubscriptionMetadataType == MetadataType.Show) && rec.EpisodeNumber > 0
-                            ? rec.SeasonNumber.ToString("'S'00") + rec.EpisodeNumber.ToString("'E'00")
-                            : string.Empty,
-                        rec.EpisodeTitle
-                    };
-                    var title = string.Join(" - ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
-
-                    Console.WriteLine($"{rec.StartTimeWithOffset}\t{rec.EndTimeWithOffset}\t{title}");
+                    var showTitleAndTime = BuildScheduledRecordingTitleWithTime(rec);
+                    Console.WriteLine(showTitleAndTime);
                 }
             }
             else
@@ -498,7 +488,7 @@ namespace PlexDvrWaker.Plex
                     }
                 }
 
-                RemoveScheduledRecordings(idsToRemove);
+                RemoveScheduledRecordings(idsToRemove, true);
 
                 Logger.LogInformation($"    Removed TV shows: {idsToRemove.Count}");
             }
@@ -551,25 +541,51 @@ namespace PlexDvrWaker.Plex
                     }
                 }
 
-                RemoveScheduledRecordings(idsToRemove);
+                RemoveScheduledRecordings(idsToRemove, true);
 
                 Logger.LogInformation($"    Removed movies: {idsToRemove.Count}");
             }
         }
 
-        private void RemoveScheduledRecordings(IEnumerable<string> idsToRemove)
+        private void RemoveScheduledRecordings(IEnumerable<string> idsToRemove, bool logRemovedItems = false)
         {
             if (idsToRemove != null && idsToRemove.Any())
             {
                 foreach (var id in idsToRemove.ToArray())
                 {
-                    if (_scheduledRecordings.ContainsKey(id))
+                    if (_scheduledRecordings.TryGetValue(id, out var rec))
                     {
+                        if (logRemovedItems)
+                        {
+                            var showTitleAndTime = BuildScheduledRecordingTitleWithTime(rec);
+                            Logger.LogInformation($"    {showTitleAndTime}");
+                        }
+
                         _scheduledRecordings.Remove(id);
                     }
                 }
             }
         }
 
+        private string BuildScheduledRecordingTitleWithTime(ScheduledRecording rec)
+        {
+            var title = BuildScheduledRecordingTitle(rec);
+            return $"{rec.StartTimeWithOffset}\t{rec.EndTimeWithOffset}\t{title}";
+        }
+
+        private string BuildScheduledRecordingTitle(ScheduledRecording rec)
+        {
+            var parts = new[]
+            {
+                rec.ShowTitle,
+                rec.SeasonTitle,
+                (rec.SubscriptionMetadataType == MetadataType.Episode || rec.SubscriptionMetadataType == MetadataType.Show) && rec.EpisodeNumber > 0
+                    ? rec.SeasonNumber.ToString("'S'00") + rec.EpisodeNumber.ToString("'E'00")
+                    : string.Empty,
+                rec.EpisodeTitle
+            };
+
+            return string.Join(" - ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+        }
     }
 }

@@ -4,8 +4,8 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<Authors>Kris Mahon</Authors>
 		<Title>Plex DVR Waker</Title>
-		<Version>3.0.1</Version>
-		<Copyright>Copyright (C) 2022 Kris Mahon</Copyright>
+		<Version>3.0.2</Version>
+		<Copyright>Copyright (C) 2024 Kris Mahon</Copyright>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
 		<DebugType>None</DebugType>
