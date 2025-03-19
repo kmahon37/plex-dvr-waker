@@ -1,3 +1,6 @@
+## 3.0.2 (2025-03-18)
+- Added additional logging when removing previously recorded shows in order to better understand why recordings are occasionally being missed
+
 ## 3.0.1 (2023-06-19)
 - Upgraded packages to fix potential security vulnerability (CVE-2023-29331)
 
