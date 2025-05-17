@@ -1,3 +1,11 @@
+## 4.0.0 (2025-03-23)
+### _Action Required_
+- Upgraded to use .NET 8.0 (since .NET Core 6.0 reached "end of life" on 2024-11-12 and is no longer supported by Microsoft) [#44](https://github.com/kmahon37/plex-dvr-waker/issues/44)
+  - You will need to download and install the latest Windows .NET Runtime 8.0
+    - [Download from Microsoft](https://dotnet.microsoft.com/download/dotnet-core/8.0)
+    - You only need the ".NET Runtime" installer _(not the "SDK", "ASP.NET Core Runtime", or "Desktop Runtime")_.
+  - You should also uninstall .NET Core 6.0 (assuming nothing else is using it).
+
 ## 3.0.2 (2025-03-18)
 - Added additional logging when removing previously recorded shows in order to better understand why recordings are occasionally being missed
 

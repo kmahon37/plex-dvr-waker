@@ -17,9 +17,9 @@ Steps to reproduce the behavior:
 A clear and concise description of what you expected to happen.
 
 **Desktop (please complete the following information):**
- - Plex DVR Waker version: [e.g. 1.0.1]
- - Windows version: [e.g. Windows 10]
- - .NET Core version: [e.g. 2.2]
+ - Plex DVR Waker version: [e.g. 4.0.0]
+ - Windows version: [e.g. Windows 11]
+ - .NET Core version: [e.g. 8.0]
 
 **Additional context**
 Add any other context about the problem here.
