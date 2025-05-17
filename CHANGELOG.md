@@ -1,4 +1,4 @@
-## 4.0.0 (2025-03-23)
+## 4.0.0 (2025-05-17)
 ### _Action Required_
 - Upgraded to use .NET 8.0 (since .NET Core 6.0 reached "end of life" on 2024-11-12 and is no longer supported by Microsoft) [#44](https://github.com/kmahon37/plex-dvr-waker/issues/44)
   - You will need to download and install the latest Windows .NET Runtime 8.0
