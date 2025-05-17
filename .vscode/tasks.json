@@ -37,7 +37,7 @@
                 "--configuration",
                 "Release",
                 "--output",
-                "./bin/Release/net6.0/PlexDvrWaker",
+                "./bin/Release/net8.0/PlexDvrWaker",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -65,7 +65,7 @@
             "command": "Compress-Archive",
             "args": [
                 "-Path",
-                "${workspaceFolder}/bin/Release/net6.0/PlexDvrWaker",
+                "${workspaceFolder}/bin/Release/net8.0/PlexDvrWaker",
                 "-DestinationPath",
                 "${workspaceFolder}/PrivateFiles/Releases/PlexDvrWaker.${input:version}.zip",
                 "-CompressionLevel",
